@@ -7,39 +7,39 @@
    ============================================== */
 
 :root {
-  /* Brand - Blue */
-  --rf-primary: #0066cc;
-  --rf-primary-mid: #0052a3;
-  --rf-accent: #f59e0b;
-  --rf-accent-glow: rgba(245, 158, 11, 0.1);
-  --rf-accent-dark: #d97706;
+  /* Theme - BLACK, BLUE, PINK */
+  --rf-primary: #ff007a; /* Rider Primary (Pink) */
+  --rf-primary-mid: #d60066;
+  --rf-accent: #00d4ff; /* Driver Accent (Blue) */
+  --rf-accent-glow: rgba(0, 212, 255, 0.1);
+  --rf-accent-dark: #0099cc;
 
-  /* Rider theme - Blue */
-  --rf-rider-primary: #0066cc;
-  --rf-rider-light: #e6f0ff;
-  --rf-rider-glow: rgba(0, 102, 204, 0.1);
+  /* Rider theme - PINK */
+  --rf-rider-primary: #ff007a;
+  --rf-rider-light: #2d1a24;
+  --rf-rider-glow: rgba(255, 0, 122, 0.1);
 
-  /* Driver theme - Green/Blue */
-  --rf-driver-primary: #10b981;
-  --rf-driver-light: #ecfdf5;
-  --rf-driver-glow: rgba(16, 185, 129, 0.1);
+  /* Driver theme - BLUE */
+  --rf-driver-primary: #00d4ff;
+  --rf-driver-light: #16262b;
+  --rf-driver-glow: rgba(0, 212, 255, 0.1);
 
   /* Semantic */
-  --rf-success: #10b981;
-  --rf-warning: #f59e0b;
-  --rf-danger: #ef4444;
+  --rf-success: #00ffa3;
+  --rf-warning: #ffcc00;
+  --rf-danger: #ff4d4d;
   --rf-info: #3b82f6;
 
-  /* Neutrals - LIGHT MODE */
-  --rf-bg: #f8fafc;
-  --rf-surface: #ffffff;
-  --rf-surface-2: #f1f5f9;
-  --rf-border: #e2e8f0;
-  --rf-text: #1e293b;
-  --rf-text-muted: #64748b;
-  --rf-shadow-sm: 0 1px 3px rgba(0,0,0,0.1);
-  --rf-shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1);
-  --rf-shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1);
+  /* Neutrals - DARK MODE */
+  --rf-bg: #0a0a0a;
+  --rf-surface: #121212;
+  --rf-surface-2: #1e1e1e;
+  --rf-border: #333333;
+  --rf-text: #ffffff;
+  --rf-text-muted: #a0a0a0;
+  --rf-shadow-sm: 0 1px 3px rgba(0,0,0,0.5);
+  --rf-shadow-md: 0 4px 6px -1px rgba(0,0,0,0.5);
+  --rf-shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.5);
 
   /* Map specific */
   --map-height: 420px;
@@ -48,18 +48,18 @@
   /* Legacy compatibility - map old variables to new ones */
   --color-primary: var(--rf-primary);
   --color-primary-dark: var(--rf-primary-mid);
-  --color-primary-light: rgba(0, 255, 255, 0.1);
+  --color-primary-light: rgba(255, 0, 122, 0.1);
   --color-secondary: var(--rf-accent);
   --color-secondary-dark: var(--rf-accent-dark);
-  --color-secondary-light: rgba(255, 20, 147, 0.15);
+  --color-secondary-light: rgba(0, 212, 255, 0.1);
   --color-danger: var(--rf-danger);
   --color-danger-light: rgba(255, 71, 87, 0.15);
   --color-warning: var(--rf-warning);
   --color-warning-light: rgba(255, 176, 32, 0.15);
   --color-success: var(--rf-success);
-  --color-success-light: rgba(0, 200, 150, 0.15);
-  --color-dark: var(--rf-text);
-  --color-dark-light: var(--rf-text-muted);
+  --color-success-light: rgba(0, 255, 163, 0.15);
+  --color-dark: #ffffff;
+  --color-dark-light: #a0a0a0;
   --color-light: var(--rf-bg);
   --color-light-2: var(--rf-surface-2);
   --color-light-3: var(--rf-border);
