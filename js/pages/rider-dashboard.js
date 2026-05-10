@@ -2979,7 +2979,6 @@ class RiderDashboard {
                 console.error('Failed to request ride on server:', err);
                 showToast('Server request failed, using local mode', 'warning');
             });
-        }
         // --- End of API Integration ---
 
         // 3. Save to shared state (driver will see this within 1 second)
