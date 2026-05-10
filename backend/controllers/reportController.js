@@ -134,16 +134,22 @@ async function getPlatformHealth(req, res, next) {
   try {
     const conn = await db.getConnection();
     const [users] = await conn.query(`SELECT COUNT(*) as count FROM users`);
+    const [riders] = await conn.query(`SELECT COUNT(*) as count FROM users WHERE role = 'Rider'`);
     const [drivers] = await conn.query(`SELECT COUNT(*) as count FROM drivers WHERE verification_status = 'Verified'`);
+    const [totalRides] = await conn.query(`SELECT COUNT(*) as count FROM rides`);
     const [activeRides] = await conn.query(`SELECT COUNT(*) as count FROM ActiveRidesView`);
     const [revenue] = await conn.query(`SELECT SUM(amount) as total FROM payments WHERE payment_status = 'Paid'`);
+    const [complaints] = await conn.query(`SELECT COUNT(*) as count FROM complaints WHERE status = 'Open'`);
     conn.release();
 
     return successResponse(res, {
       total_users: users[0].count,
+      total_riders: riders[0].count,
       active_drivers: drivers[0].count,
+      total_rides: totalRides[0].count,
       active_rides: activeRides[0].count,
-      total_revenue: revenue[0].total || 0
+      total_revenue: revenue[0].total || 0,
+      total_complaints: complaints[0].count
     }, 'Platform health retrieved', 200);
   } catch (error) {
     next(error);
