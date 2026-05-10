@@ -167,15 +167,16 @@ async function verifyDriver(req, res, next) {
     }
 
     const driverId = req.params.id;
+    const { status = 'Verified' } = req.body;
 
     const driver = await driverModel.findById(driverId);
     if (!driver) {
       return errorResponse(res, 'Driver not found', 404);
     }
 
-    const updated = await driverModel.updateVerificationStatus(driverId, 'Verified');
+    const updated = await driverModel.updateVerificationStatus(driverId, status);
 
-    return successResponse(res, updated, 'Driver verified successfully', 200);
+    return successResponse(res, updated, `Driver status updated to ${status} successfully`, 200);
   } catch (error) {
     next(error);
   }

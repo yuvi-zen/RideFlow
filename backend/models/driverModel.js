@@ -43,7 +43,7 @@ exports.createDriver = async (driverData) => {
 exports.findById = async (id) => {
   const sql = `SELECT d.id, d.user_id, d.license_number, d.license_expiry, d.cnic, 
                d.availability_status, d.average_rating,
-               d.total_trips_completed, d.created_at, d.updated_at,
+               d.total_trips_completed as total_trips, d.created_at, d.updated_at,
                u.full_name, u.email, u.phone_number, u.profile_photo
         FROM ${tableName} d
         JOIN users u ON d.user_id = u.id
@@ -58,7 +58,7 @@ exports.findById = async (id) => {
 exports.findByUserId = async (userId) => {
   const sql = `SELECT d.id, d.user_id, d.license_number, d.license_expiry, d.cnic, 
                d.availability_status, d.average_rating,
-               d.total_trips_completed, d.created_at, d.updated_at,
+               d.total_trips_completed as total_trips, d.created_at, d.updated_at,
                u.full_name, u.email, u.phone_number
         FROM ${tableName} d
         JOIN users u ON d.user_id = u.id
@@ -74,7 +74,7 @@ exports.getAll = async (filters = {}) => {
   const { status, verified = null, limit = 50, offset = 0 } = filters;
   let sql = `SELECT d.id, d.user_id, d.license_number, d.license_expiry, d.cnic,
                d.availability_status, d.average_rating,
-               d.total_trips_completed, d.created_at,
+               d.total_trips_completed as total_trips, d.created_at, d.verification_status,
                u.full_name, u.email, u.phone_number, u.account_status
                FROM ${tableName} d
                JOIN users u ON d.user_id = u.id
