@@ -375,6 +375,10 @@ const adminAPI = {
         return apiClient.get('/reports/platform-health');
     },
 
+    async getUsers() {
+        return apiClient.get('/users');
+    },
+
     async verifyDriver(driverId, status) {
         return apiClient.put(`/drivers/${driverId}/verify`, { status });
     },

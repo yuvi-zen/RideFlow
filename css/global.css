@@ -107,6 +107,12 @@ body {
     background-color: var(--rf-bg);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+    width: 100vw;
+  }
+
+  * {
+    box-sizing: border-box;
   }
 
   h1,

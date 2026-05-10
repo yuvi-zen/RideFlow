@@ -14,16 +14,13 @@ class AdminDashboard {
         try {
             const response = await adminAPI.getDashboardStats();
             this.stats = response.data;
+            console.log('Real Stats Loaded:', this.stats);
         } catch (error) {
             showToast('Failed to load stats', 'error');
         }
 
         this.container.innerHTML = `
             <div class="admin-dashboard">
-                <!-- Demo Banner -->
-                <div style="background:linear-gradient(135deg,#f59e0b,#d97706);color:white;padding:10px 20px;text-align:center;font-size:13px;font-weight:600;border-radius:8px;margin-bottom:16px;">
-                    🎯 Demo Mode — All data is simulated. No real API calls are being made.
-                </div>
 
                 <!-- Header -->
                 <div class="dashboard-header">
@@ -58,7 +55,14 @@ class AdminDashboard {
 
                         <!-- Overview Tab -->
                         <div id="tab-overview" class="tab-content">
-                            <div class="grid-2" style="gap: 24px;">
+                            <div class="grid-3" style="gap: 24px;">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h3>Top Drivers</h3>
+                                        <button class="btn btn-sm btn-secondary" onclick="adminDash.switchTab(event, 'analytics')">Details</button>
+                                    </div>
+                                    <div id="driver-leaderboard-container-overview"></div>
+                                </div>
                                 <div class="card">
                                     <div class="card-header">
                                         <h3>Recent Rides</h3>
@@ -239,6 +243,7 @@ class AdminDashboard {
         // Load overview
         this.loadRecentRides();
         this.loadRecentPayments();
+        this.loadDriverLeaderboard(); // Populates both tabs
 
         // Load analytics
         this.loadAnalyticsSection();
@@ -393,34 +398,43 @@ class AdminDashboard {
     }
 
     async loadDriverLeaderboard() {
-        const container = document.getElementById('driver-leaderboard-container');
+        const containers = [
+            document.getElementById('driver-leaderboard-container'),
+            document.getElementById('driver-leaderboard-container-overview')
+        ];
+        
         try {
             const response = await adminAPI.generateReport('top-drivers');
             const leaderboard = response.data || [];
 
-            if (leaderboard.length === 0) {
-                container.innerHTML = '<p class="text-muted" style="padding: 16px;">No top drivers yet</p>';
-                return;
-            }
+            containers.forEach(container => {
+                if (!container) return;
 
-            let html = '<div style="display: flex; flex-direction: column; gap: 12px; padding: 12px;">';
-            leaderboard.forEach((driver, index) => {
-                html += `
-                    <div style="padding: 8px; border-left: 3px solid var(--color-warning); background-color: var(--color-light); border-radius: 4px;">
-                        <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-                            <strong>#${index + 1} ${driver.full_name}</strong>
-                            <span>${driver.average_rating} ⭐</span>
+                if (leaderboard.length === 0) {
+                    container.innerHTML = '<p class="text-muted" style="padding: 16px;">No top drivers yet</p>';
+                    return;
+                }
+
+                let html = '<div style="display: flex; flex-direction: column; gap: 12px; padding: 12px;">';
+                leaderboard.forEach((driver, index) => {
+                    html += `
+                        <div style="padding: 10px; border-left: 3px solid var(--color-warning); background-color: var(--color-light-2); border-radius: 8px;">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                                <strong>#${index + 1} ${driver.full_name}</strong>
+                                <span style="color:var(--color-warning);">${driver.average_rating} ⭐</span>
+                            </div>
+                            <div style="font-size: 11px; color: var(--color-text-muted); display: flex; justify-content: space-between;">
+                                <span>${driver.total_rides} Rides</span>
+                                <span>${formatCurrency(driver.total_earnings)} Total</span>
+                            </div>
                         </div>
-                        <div style="font-size: 12px; color: var(--color-text-muted);">
-                            View: TopDriversView
-                        </div>
-                    </div>
-                `;
+                    `;
+                });
+                html += '</div>';
+                container.innerHTML = html;
             });
-            html += '</div>';
-            container.innerHTML = html;
         } catch (error) {
-            container.innerHTML = '<p class="text-danger">Failed to load leaderboard</p>';
+            containers.forEach(c => { if(c) c.innerHTML = '<p class="text-danger">Failed to load leaderboard</p>'; });
         }
     }
 
@@ -565,88 +579,104 @@ class AdminDashboard {
 
     async loadRecentRides() {
         const container = document.getElementById('recent-rides-container');
-        const rides = mockRides.slice(0, 5);
+        try {
+            const response = await adminAPI.generateReport('ride-stats', { limit: 5 });
+            const rides = response.data || [];
 
-        if (rides.length === 0) {
-            container.innerHTML = '<p class="text-muted" style="padding: 16px;">No recent rides</p>';
-            return;
+            if (rides.length === 0) {
+                container.innerHTML = '<p class="text-muted" style="padding: 16px;">No recent rides</p>';
+                return;
+            }
+
+            let html = '<div style="display: flex; flex-direction: column; gap: 12px; padding: 12px;">';
+            rides.forEach(ride => {
+                html += `
+                    <div style="padding: 8px; border-left: 3px solid var(--color-primary); background-color: var(--color-light-2); border-radius: 8px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                            <strong>Ride #${ride.id || 'N/A'}</strong>
+                            <span class="badge badge-primary">${ride.status || 'Active'}</span>
+                        </div>
+                        <div style="font-size: 12px; color: var(--color-text-muted);">
+                            Fare: ${formatCurrency(ride.fare || 0)} | ${formatDateTime(ride.created_at)}
+                        </div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            container.innerHTML = html;
+        } catch (error) {
+            container.innerHTML = '<p class="text-danger">Failed to load rides</p>';
         }
-
-        let html = '<div style="display: flex; flex-direction: column; gap: 12px; padding: 12px;">';
-        rides.forEach(ride => {
-            html += `
-                <div style="padding: 8px; border-left: 3px solid var(--color-primary); background-color: var(--color-light); border-radius: 4px;">
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-                        <strong>Ride #${ride.id}</strong>
-                        <span class="badge badge-${ride.status === 'Completed' ? 'success' : ride.status === 'Cancelled' ? 'danger' : 'primary'}">${ride.status}</span>
-                    </div>
-                    <div style="font-size: 12px; color: var(--color-text-muted);">
-                        Fare: ${formatCurrency(ride.fare || 0)} | ${formatDateTime(ride.created_at)}
-                    </div>
-                </div>
-            `;
-        });
-        html += '</div>';
-        container.innerHTML = html;
     }
 
     async loadRecentPayments() {
         const container = document.getElementById('recent-payments-container');
-        const payments = mockPayments.slice(0, 5);
+        try {
+            const response = await adminAPI.generateReport('revenue-by-city'); // Reusing report logic
+            const payments = response.data || [];
 
-        if (payments.length === 0) {
-            container.innerHTML = '<p class="text-muted" style="padding: 16px;">No recent payments</p>';
-            return;
+            if (payments.length === 0) {
+                container.innerHTML = '<p class="text-muted" style="padding: 16px;">No recent payments</p>';
+                return;
+            }
+
+            let html = '<div style="display: flex; flex-direction: column; gap: 12px; padding: 12px;">';
+            payments.slice(0, 5).forEach(p => {
+                html += `
+                    <div style="padding: 8px; border-left: 3px solid var(--color-success); background-color: var(--color-light-2); border-radius: 8px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                            <strong>${formatCurrency(p.revenue || 0)}</strong>
+                            <span class="badge badge-success">Paid</span>
+                        </div>
+                        <div style="font-size: 12px; color: var(--color-text-muted);">
+                            City: ${p.city} | ${p.rides} Rides
+                        </div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            container.innerHTML = html;
+        } catch (error) {
+            container.innerHTML = '<p class="text-danger">Failed to load payments</p>';
         }
-
-        let html = '<div style="display: flex; flex-direction: column; gap: 12px; padding: 12px;">';
-        payments.forEach(payment => {
-            html += `
-                <div style="padding: 8px; border-left: 3px solid var(--color-success); background-color: var(--color-light); border-radius: 4px;">
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-                        <strong>${formatCurrency(payment.amount)}</strong>
-                        <span class="badge badge-success">${payment.payment_status}</span>
-                    </div>
-                    <div style="font-size: 12px; color: var(--color-text-muted);">
-                        ${payment.payment_method} | ${formatDateTime(payment.transaction_date)}
-                    </div>
-                </div>
-            `;
-        });
-        html += '</div>';
-        container.innerHTML = html;
     }
 
     async loadUsersTable() {
         const container = document.getElementById('users-table-container');
-        
-        const table = new DataTable({
-            columns: [
-                { key: 'id', label: 'ID' },
-                { key: 'full_name', label: 'Name' },
-                { key: 'email', label: 'Email' },
-                { key: 'role', label: 'Role' },
-                { key: 'account_status', label: 'Status', type: 'status' },
-                { key: 'phone_number', label: 'Phone' }
-            ],
-            data: mockUsers,
-            actions: [
-                { key: 'view', label: '👁️', className: 'secondary' },
-                { key: 'edit', label: '✏️', className: 'primary' },
-                { key: 'suspend', label: '⛔', className: 'danger' }
-            ],
-            onAction: (action, userId) => {
-                const user = mockUsers.find(u => u.id === userId);
-                if (action === 'view') {
-                    this.showUserDetails(user);
-                } else if (action === 'suspend') {
-                    this.suspendUser(user);
+        try {
+            const response = await adminAPI.getUsers(); 
+            const users = response.data || [];
+            
+            const table = new DataTable({
+                columns: [
+                    { key: 'id', label: 'ID' },
+                    { key: 'full_name', label: 'Name' },
+                    { key: 'email', label: 'Email' },
+                    { key: 'role', label: 'Role' },
+                    { key: 'account_status', label: 'Status', type: 'status' },
+                    { key: 'phone_number', label: 'Phone' }
+                ],
+                data: users,
+                actions: [
+                    { key: 'view', label: '👁️', className: 'secondary' },
+                    { key: 'edit', label: '✏️', className: 'primary' },
+                    { key: 'suspend', label: '⛔', className: 'danger' }
+                ],
+                onAction: (action, userId) => {
+                    const user = users.find(u => u.id === userId);
+                    if (action === 'view') {
+                        this.showUserDetails(user);
+                    } else if (action === 'suspend') {
+                        this.suspendUser(user);
+                    }
                 }
-            }
-        });
+            });
 
-        container.innerHTML = '';
-        container.appendChild(table.render());
+            container.innerHTML = '';
+            container.appendChild(table.render());
+        } catch (error) {
+            container.innerHTML = '<p class="text-danger">Failed to load users</p>';
+        }
     }
 
     showUserDetails(user) {
