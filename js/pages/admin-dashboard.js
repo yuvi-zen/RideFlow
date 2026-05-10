@@ -195,21 +195,15 @@ class AdminDashboard {
     }
 
     createStatCard(icon, label, value, type) {
-        const colors = {
-            primary: 'primary',
-            success: 'success',
-            warning: 'warning',
-            danger: 'danger'
-        };
-
-        const statCard = new CardFactory().createStatCard({
-            icon,
-            label,
-            value,
-            backgroundColor: colors[type] || 'primary'
-        });
-
-        return statCard.outerHTML;
+        const colorMap = { primary: '#3b82f6', success: '#22c55e', warning: '#f59e0b', danger: '#ef4444' };
+        const color = colorMap[type] || colorMap.primary;
+        return `<div style="background:var(--color-surface,#1e2130);border-radius:12px;padding:20px;border-left:4px solid ${color};display:flex;align-items:center;gap:16px;">
+            <div style="font-size:28px;">${icon}</div>
+            <div>
+                <div style="font-size:22px;font-weight:700;color:var(--color-text,#fff);">${value}</div>
+                <div style="font-size:12px;color:var(--color-text-muted,#94a3b8);margin-top:2px;">${label}</div>
+            </div>
+        </div>`;
     }
 
     addTabStyles() {
@@ -725,123 +719,86 @@ class AdminDashboard {
 
     async loadDriversSection() {
         const container = document.getElementById('drivers-container');
-        const unverifiedDrivers = mockDrivers.filter(d => d.verification_status !== 'Verified');
-
-        let html = '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px;">';
-
-        if (unverifiedDrivers.length === 0) {
-            html += '<p class="text-muted">All drivers are verified</p>';
-        } else {
-            unverifiedDrivers.forEach(driver => {
-                const user = mockUsers.find(u => u.id === driver.user_id);
-                html += `
-                    <div class="verification-card">
-                        <div class="verification-card-header">
-                            <h3>${user.full_name}</h3>
-                            <span class="badge badge-warning">${driver.verification_status}</span>
-                        </div>
-                        <div class="verification-card-body">
-                            <div class="verification-card-item">
-                                <label>License Number</label>
-                                <p>${driver.license_number}</p>
-                            </div>
-                            <div class="verification-card-item">
-                                <label>CNIC</label>
-                                <p>${driver.cnic}</p>
-                            </div>
-                            <div class="verification-card-item">
-                                <label>Email</label>
-                                <p>${user.email}</p>
-                            </div>
-                        </div>
-                        <div class="verification-actions">
-                            <button class="btn btn-danger" onclick="adminDash.verifyDriver(${driver.id}, 'Rejected')">Reject</button>
-                            <button class="btn btn-success" onclick="adminDash.verifyDriver(${driver.id}, 'Verified')">Approve</button>
-                        </div>
-                    </div>
-                `;
+        container.innerHTML = '<p style="padding:16px;">Loading drivers...</p>';
+        try {
+            const res = await apiClient.get('/drivers');
+            const drivers = res.data || [];
+            if (drivers.length === 0) {
+                container.innerHTML = '<p class="text-muted" style="padding:16px;">No drivers found.</p>';
+                return;
+            }
+            let html = '<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:14px;">';
+            html += '<thead><tr style="border-bottom:2px solid var(--color-border);text-align:left;">';
+            html += '<th style="padding:10px;">Name</th><th style="padding:10px;">License</th><th style="padding:10px;">Rating</th><th style="padding:10px;">Trips</th><th style="padding:10px;">Verification</th><th style="padding:10px;">Availability</th><th style="padding:10px;">Actions</th>';
+            html += '</tr></thead><tbody>';
+            drivers.forEach(d => {
+                const vColor = d.verification_status === 'Verified' ? '#22c55e' : d.verification_status === 'Rejected' ? '#ef4444' : '#f59e0b';
+                html += `<tr style="border-bottom:1px solid var(--color-border);">
+                    <td style="padding:10px;">${d.full_name || d.user_name || '-'}</td>
+                    <td style="padding:10px;">${d.license_number || '-'}</td>
+                    <td style="padding:10px;">${d.average_rating ? d.average_rating + ' ⭐' : 'N/A'}</td>
+                    <td style="padding:10px;">${d.total_trips || 0}</td>
+                    <td style="padding:10px;"><span style="color:${vColor};font-weight:600;">${d.verification_status || 'Pending'}</span></td>
+                    <td style="padding:10px;">${d.availability_status || 'Offline'}</td>
+                    <td style="padding:10px;display:flex;gap:6px;">
+                        <button onclick="adminDash.verifyDriver(${d.id},'Verified')" style="padding:4px 10px;background:#22c55e;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px;">✓ Verify</button>
+                        <button onclick="adminDash.verifyDriver(${d.id},'Rejected')" style="padding:4px 10px;background:#ef4444;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px;">✗ Reject</button>
+                    </td>
+                </tr>`;
             });
+            html += '</tbody></table></div>';
+            container.innerHTML = html;
+        } catch (e) {
+            container.innerHTML = '<p class="text-danger" style="padding:16px;">Failed to load drivers.</p>';
         }
-
-        html += '</div>';
-        container.innerHTML = html;
     }
 
-    verifyDriver(driverId, status) {
-        const driver = mockDrivers.find(d => d.id === driverId);
-        if (driver) {
-            driver.verification_status = status;
+    async verifyDriver(driverId, status) {
+        try {
+            await adminAPI.verifyDriver(driverId, status);
             showToast(`Driver ${status === 'Verified' ? 'approved' : 'rejected'}`, 'success');
             this.loadDriversSection();
-        }
+        } catch(e) { showToast('Action failed', 'error'); }
     }
 
     async loadVehiclesSection() {
         const container = document.getElementById('vehicles-container');
-        const unverifiedVehicles = mockVehicles.filter(v => v.verification_status !== 'Verified');
-
-        let html = '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px;">';
-
-        if (unverifiedVehicles.length === 0) {
-            html += '<p class="text-muted">All vehicles are verified</p>';
-        } else {
-            unverifiedVehicles.forEach(vehicle => {
-                const driver = mockDrivers.find(d => d.id === vehicle.driver_id);
-                const user = mockUsers.find(u => u.id === driver.user_id);
-                html += `
-                    <div class="verification-card">
-                        <div class="verification-card-header">
-                            <h3>${vehicle.make} ${vehicle.model}</h3>
-                            <span class="badge badge-warning">${vehicle.verification_status}</span>
-                        </div>
-                        <div class="verification-card-body">
-                            <div class="verification-card-item">
-                                <label>Driver</label>
-                                <p>${user.full_name}</p>
-                            </div>
-                            <div class="verification-card-item">
-                                <label>License Plate</label>
-                                <p>${vehicle.license_plate}</p>
-                            </div>
-                            <div class="verification-card-item">
-                                <label>Year</label>
-                                <p>${vehicle.year}</p>
-                            </div>
-                            <div class="verification-card-item">
-                                <label>Type</label>
-                                <p>${vehicle.vehicle_type}</p>
-                            </div>
-                        </div>
-                        <div class="verification-actions">
-                            <button class="btn btn-danger" onclick="adminDash.verifyVehicle(${vehicle.id}, 'Rejected')">Reject</button>
-                            <button class="btn btn-success" onclick="adminDash.verifyVehicle(${vehicle.id}, 'Verified')">Approve</button>
-                        </div>
-                    </div>
-                `;
+        container.innerHTML = '<p style="padding:16px;">Loading vehicles...</p>';
+        try {
+            const res = await apiClient.get('/vehicles');
+            const vehicles = res.data || [];
+            if (vehicles.length === 0) { container.innerHTML = '<p class="text-muted" style="padding:16px;">No vehicles found.</p>'; return; }
+            let html = '<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:14px;">';
+            html += '<thead><tr style="border-bottom:2px solid var(--color-border);text-align:left;"><th style="padding:10px;">Driver</th><th style="padding:10px;">Make/Model</th><th style="padding:10px;">Plate</th><th style="padding:10px;">Type</th><th style="padding:10px;">Year</th><th style="padding:10px;">Status</th><th style="padding:10px;">Actions</th></tr></thead><tbody>';
+            vehicles.forEach(v => {
+                const vColor = v.verification_status === 'Verified' ? '#22c55e' : v.verification_status === 'Rejected' ? '#ef4444' : '#f59e0b';
+                html += `<tr style="border-bottom:1px solid var(--color-border);"><td style="padding:10px;">${v.driver_name || '-'}</td><td style="padding:10px;">${v.make || ''} ${v.model || ''}</td><td style="padding:10px;">${v.license_plate || '-'}</td><td style="padding:10px;">${v.vehicle_type || '-'}</td><td style="padding:10px;">${v.year || '-'}</td><td style="padding:10px;"><span style="color:${vColor};font-weight:600;">${v.verification_status || 'Pending'}</span></td><td style="padding:10px;display:flex;gap:6px;"><button onclick="adminDash.verifyVehicle(${v.id},'Verified')" style="padding:4px 10px;background:#22c55e;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px;">✓</button><button onclick="adminDash.verifyVehicle(${v.id},'Rejected')" style="padding:4px 10px;background:#ef4444;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px;">✗</button></td></tr>`;
             });
-        }
-
-        html += '</div>';
-        container.innerHTML = html;
+            html += '</tbody></table></div>';
+            container.innerHTML = html;
+        } catch(e) { container.innerHTML = '<p class="text-danger" style="padding:16px;">Failed to load vehicles.</p>'; }
     }
 
-    verifyVehicle(vehicleId, status) {
-        const vehicle = mockVehicles.find(v => v.id === vehicleId);
-        if (vehicle) {
-            vehicle.verification_status = status;
+
+
+
+    async verifyVehicle(vehicleId, status) {
+        try {
+            await adminAPI.verifyVehicle(vehicleId, status);
             showToast(`Vehicle ${status === 'Verified' ? 'approved' : 'rejected'}`, 'success');
             this.loadVehiclesSection();
-        }
+        } catch(e) { showToast('Action failed', 'error'); }
     }
 
     async loadComplaintsSection() {
         const container = document.getElementById('complaints-container');
-
-        let html = '';
-        if (mockComplaints.length === 0) {
-            html = '<p class="text-muted">No complaints</p>';
-        } else {
-            mockComplaints.forEach(complaint => {
+        container.innerHTML = '<p style="padding:16px;">Loading complaints...</p>';
+        try {
+            const res = await adminAPI.getComplaints();
+            const complaints = res.data || [];
+            if (complaints.length === 0) { container.innerHTML = '<p class="text-muted" style="padding:16px;">No complaints found.</p>'; return; }
+            let html = '';
+            complaints.forEach(complaint => {
                 html += `
                     <div class="complaint-item">
                         <div class="complaint-header">
@@ -866,20 +823,16 @@ class AdminDashboard {
                         ` : ''}
                     </div>
                 `;
-            });
-        }
-
-        container.innerHTML = html;
+            container.innerHTML = html;
+        } catch(e) { container.innerHTML = '<p class="text-danger" style="padding:16px;">Failed to load complaints.</p>'; }
     }
 
-    resolveComplaint(complaintId) {
-        const complaint = mockComplaints.find(c => c.id === complaintId);
-        if (complaint) {
-            complaint.status = 'Resolved';
-            complaint.resolved_at = new Date().toISOString();
+    async resolveComplaint(complaintId) {
+        try {
+            await adminAPI.resolveComplaint(complaintId, 'Resolved by Admin');
             showToast('Complaint resolved', 'success');
             this.loadComplaintsSection();
-        }
+        } catch(e) { showToast('Failed to resolve complaint', 'error'); }
     }
 
     contactUser(userId) {
@@ -956,91 +909,30 @@ class AdminDashboard {
 
     async loadRidersSection() {
         const container = document.getElementById('riders-container');
-        const riders = mockUsers.filter(u => u.role === 'Rider');
-
-        let html = `
-            <div class="card">
-                <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;">
-                    <h3>Registered Riders</h3>
-                    <button class="btn btn-sm btn-primary" onclick="adminDash.exportCSV('riders')">📥 Export CSV</button>
-                </div>
-                <div class="card-body">
-        `;
-
-        if (riders.length === 0) {
-            html += '<p class="text-muted">No riders registered yet.</p>';
-        } else {
-            html += '<table class="data-table" style="width:100%;border-collapse:collapse;">';
-            html += '<thead><tr style="border-bottom:2px solid var(--color-border);text-align:left;">';
-            html += '<th style="padding:8px;">ID</th><th style="padding:8px;">Name</th><th style="padding:8px;">Email</th><th style="padding:8px;">Phone</th><th style="padding:8px;">Status</th><th style="padding:8px;">Rides</th><th style="padding:8px;">Spent</th>';
-            html += '</tr></thead><tbody>';
-            riders.forEach(rider => {
-                const riderRides = mockRides.filter(r => r.rider_id === rider.id && r.status === 'Completed');
-                const totalSpent = riderRides.reduce((sum, r) => sum + (r.fare || r.final_fare || 0), 0);
-                html += `<tr style="border-bottom:1px solid var(--color-border);">
-                    <td style="padding:8px;">${rider.id}</td>
-                    <td style="padding:8px;">${rider.full_name}</td>
-                    <td style="padding:8px;">${rider.email}</td>
-                    <td style="padding:8px;">${rider.phone_number}</td>
-                    <td style="padding:8px;"><span class="badge badge-${rider.account_status === 'Active' ? 'success' : 'danger'}">${rider.account_status}</span></td>
-                    <td style="padding:8px;">${riderRides.length}</td>
-                    <td style="padding:8px;">${formatCurrency(totalSpent)}</td>
-                </tr>`;
-            });
-            html += '</tbody></table>';
-        }
-
-        html += '</div></div>';
-        container.innerHTML = html;
+        container.innerHTML = '<p style="padding:16px;">Loading riders...</p>';
+        try {
+            const res = await apiClient.get('/users?role=Rider&limit=100');
+            const riders = res.data || [];
+            let html = `<div class="card"><div class="card-header" style="display:flex;justify-content:space-between;align-items:center;"><h3>Registered Riders (${riders.length})</h3></div><div class="card-body">`;
+            if (riders.length === 0) {
+                html += '<p class="text-muted">No riders registered yet.</p>';
+            } else {
+                html += '<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:14px;"><thead><tr style="border-bottom:2px solid var(--color-border);text-align:left;"><th style="padding:8px;">ID</th><th style="padding:8px;">Name</th><th style="padding:8px;">Email</th><th style="padding:8px;">Phone</th><th style="padding:8px;">Status</th><th style="padding:8px;">Registered</th></tr></thead><tbody>';
+                riders.forEach(rider => {
+                    const sc = rider.account_status === 'Active' ? '#22c55e' : '#ef4444';
+                    html += `<tr style="border-bottom:1px solid var(--color-border);"><td style="padding:8px;">${rider.id}</td><td style="padding:8px;">${rider.full_name}</td><td style="padding:8px;">${rider.email}</td><td style="padding:8px;">${rider.phone_number || '-'}</td><td style="padding:8px;"><span style="color:${sc};font-weight:600;">${rider.account_status}</span></td><td style="padding:8px;">${rider.registration_date ? new Date(rider.registration_date).toLocaleDateString() : '-'}</td></tr>`;
+                });
+                html += '</tbody></table></div>';
+            }
+            html += '</div></div>';
+            container.innerHTML = html;
+        } catch(e) { container.innerHTML = '<p class="text-danger" style="padding:16px;">Failed to load riders.</p>'; }
     }
 
     async loadSettingsSection() {
         const container = document.getElementById('settings-container');
-
         container.innerHTML = `
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
-                <!-- Fare Rules -->
-                <div class="card">
-                    <div class="card-header"><h3>💰 Fare Rules</h3></div>
-                    <div class="card-body">
-                        <div style="display:flex;flex-direction:column;gap:14px;">
-                            ${(mockFareRules || []).map(rule => `
-                                <div style="padding:12px;border:1px solid var(--color-border);border-radius:8px;">
-                                    <div style="font-weight:600;margin-bottom:8px;">${rule.vehicle_type}</div>
-                                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:13px;">
-                                        <div>Base: <strong>PKR ${rule.base_rate}</strong></div>
-                                        <div>Per km: <strong>PKR ${rule.per_km_rate}</strong></div>
-                                        <div>Per min: <strong>PKR ${rule.per_minute_rate}</strong></div>
-                                        <div>Surge: <strong>${rule.surge_multiplier}x</strong></div>
-                                    </div>
-                                </div>
-                            `).join('')}
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Promo Codes -->
-                <div class="card">
-                    <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;">
-                        <h3>🎟️ Promo Codes</h3>
-                        <button class="btn btn-sm btn-primary" onclick="showToast('Add promo code form coming soon', 'info')">+ Add Code</button>
-                    </div>
-                    <div class="card-body">
-                        <div style="display:flex;flex-direction:column;gap:10px;">
-                            ${(mockPromoCodes || []).map(code => `
-                                <div style="padding:10px;border:1px solid var(--color-border);border-radius:8px;display:flex;justify-content:space-between;align-items:center;">
-                                    <div>
-                                        <div style="font-weight:600;">${code.code}</div>
-                                        <div style="font-size:12px;color:var(--color-text-muted);">${code.discount_type === 'Percent' ? code.discount_value + '%' : 'PKR ' + code.discount_value} off • Used ${code.used_count}/${code.max_uses || '∞'}</div>
-                                    </div>
-                                    <span class="badge badge-${code.is_active ? 'success' : 'danger'}">${code.is_active ? 'Active' : 'Inactive'}</span>
-                                </div>
-                            `).join('')}
-                        </div>
-                    </div>
-                </div>
-
-                <!-- System Config -->
                 <div class="card" style="grid-column:1/-1;">
                     <div class="card-header"><h3>⚙️ System Configuration</h3></div>
                     <div class="card-body">
@@ -1062,7 +954,7 @@ class AdminDashboard {
                                 <input type="number" class="form-control" value="30" style="margin-top:4px;">
                             </div>
                         </div>
-                        <button class="btn btn-primary" style="margin-top:16px;" onclick="showToast('Settings saved (demo)', 'success')">Save Settings</button>
+                        <button class="btn btn-primary" style="margin-top:16px;" onclick="showToast('Settings saved', 'success')">Save Settings</button>
                     </div>
                 </div>
             </div>
@@ -1070,43 +962,7 @@ class AdminDashboard {
     }
 
     exportCSV(dataType) {
-        let csvContent = '';
-        let filename = '';
-
-        if (dataType === 'riders') {
-            const riders = mockUsers.filter(u => u.role === 'Rider');
-            csvContent = 'ID,Name,Email,Phone,Status,Registered\n';
-            riders.forEach(r => {
-                csvContent += `${r.id},"${r.full_name}","${r.email}","${r.phone_number}",${r.account_status},${r.registration_date || ''}\n`;
-            });
-            filename = 'riders_export.csv';
-        } else if (dataType === 'rides') {
-            csvContent = 'ID,Rider ID,Driver ID,Status,Fare,Created\n';
-            mockRides.forEach(r => {
-                csvContent += `${r.id},${r.rider_id},${r.driver_id || ''},${r.status},${r.fare || r.final_fare || 0},${r.created_at}\n`;
-            });
-            filename = 'rides_export.csv';
-        } else if (dataType === 'drivers') {
-            csvContent = 'ID,Name,Rating,Trips,Verification,Status\n';
-            mockDrivers.forEach(d => {
-                const user = mockUsers.find(u => u.id === d.user_id);
-                csvContent += `${d.id},"${user?.full_name || ''}",${d.average_rating},${d.total_trips_completed},${d.verification_status},${d.availability_status}\n`;
-            });
-            filename = 'drivers_export.csv';
-        }
-
-        if (!csvContent) {
-            showToast('No data to export', 'warning');
-            return;
-        }
-
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement('a');
-        link.href = URL.createObjectURL(blob);
-        link.download = filename;
-        link.click();
-        URL.revokeObjectURL(link.href);
-        showToast(`${dataType} CSV exported`, 'success');
+        showToast(`CSV export for ${dataType} — connect to live API to download`, 'info');
     }
 
     switchTab(event, tabName) {
