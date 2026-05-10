@@ -16,15 +16,8 @@ class APIClient {
         const {
             method = 'GET',
             headers = {},
-            body = null,
-            useMockData = false
+            body = null
         } = options;
-
-        // If explicitly requested, return mock data
-        if (useMockData) {
-            await new Promise(resolve => setTimeout(resolve, 300));
-            return this.getMockResponse(endpoint, method, body);
-        }
 
         try {
             const token = authStorage.getAuthToken();
@@ -55,112 +48,11 @@ class APIClient {
             }
             return data;
         } catch (error) {
-            if (error.name === 'AbortError' || error.message.includes('fetch') || error.message.includes('Failed to fetch')) {
-                console.warn('[API] Backend unreachable, falling back to mock data for', endpoint);
-                return this.getMockResponse(endpoint, method, body);
-            }
-            console.error('API Error:', error);
+            console.error('[API] Error:', error);
             throw error;
         }
     }
 
-    getMockResponse(endpoint, method, body) {
-        console.log(`[MOCK] ${method} ${endpoint}`, body);
-        const path = endpoint.split('?')[0];
-        const segments = path.split('/').filter(Boolean);
-        
-        // Auth endpoints
-        if (segments[0] === 'auth') {
-            if (path === '/auth/login' && body) {
-                const user = mockUsers.find(u => u.email === body.email && u.password === body.password);
-                if (user) {
-                    return { success: true, data: { token: `mock_${user.id}`, user } };
-                }
-                return { success: false, message: 'Invalid email or password' };
-            }
-            if (path === '/auth/register' && body) {
-                const newUser = { id: mockUsers.length + 1, ...body, account_status: 'Active', registration_date: new Date().toISOString() };
-                mockUsers.push(newUser);
-                return { success: true, data: { token: `mock_${newUser.id}`, user: newUser } };
-            }
-            if (path === '/auth/profile') {
-                const tokenUser = authStorage.getCurrentUser();
-                return { success: true, data: tokenUser || mockUsers[0] };
-            }
-        }
-        
-        // Users
-        if (segments[0] === 'users') {
-            if (segments.length === 1) {
-                return { success: true, data: mockUsers, pagination: { page: 1, limit: 10, total: mockUsers.length } };
-            }
-            if (segments[1] && !isNaN(segments[1])) {
-                const user = mockUsers.find(u => u.id == segments[1]);
-                return { success: true, data: user || mockUsers[0] };
-            }
-        }
-        
-        // Drivers
-        if (segments[0] === 'drivers') {
-            if (segments[1] === 'available') {
-                return { success: true, data: mockDrivers.filter(d => d.availability_status === 'Online') };
-            }
-            if (segments[1] && !isNaN(segments[1])) {
-                const driver = mockDrivers.find(d => d.id == segments[1]);
-                return { success: true, data: driver || mockDrivers[0] };
-            }
-        }
-        
-        // Rides
-        if (segments[0] === 'rides') {
-            if (segments.length === 1) {
-                return { success: true, data: mockRides };
-            }
-            if (segments[2] === 'user') {
-                const rides = mockRides.filter(r => r.rider_id == segments[3]);
-                return { success: true, data: rides };
-            }
-            if (segments[1] && !isNaN(segments[1])) {
-                const ride = mockRides.find(r => r.id == segments[1]);
-                return { success: true, data: ride || mockRides[0] };
-            }
-        }
-        
-        // Vehicles
-        if (segments[0] === 'vehicles') {
-            if (segments[1] === 'driver') {
-                return { success: true, data: mockVehicles.filter(v => v.driver_id == segments[2]) };
-            }
-            return { success: true, data: mockVehicles };
-        }
-        
-        // Payments
-        if (segments[0] === 'payments') {
-            if (segments[1] === 'wallet') return { success: true, data: { balance: 5000 } };
-            if (segments[1] === 'promos') return { success: true, data: mockPromoCodes.filter(p => p.is_active) };
-            if (segments[1] === 'driver-earnings' || segments[1] === 'earnings') {
-                return { success: true, data: { total: 12500, avg_per_ride: 280, ride_count: 45 } };
-            }
-            return { success: true, data: mockPayments };
-        }
-        
-        // Complaints
-        if (segments[0] === 'complaints') {
-            return { success: true, data: mockComplaints };
-        }
-        
-        // Ratings
-        if (segments[0] === 'ratings') {
-            return { success: true, data: mockRatings };
-        }
-        
-        // Reports
-        if (segments[0] === 'reports') {
-            return { success: true, data: { totalUsers: mockUsers.length, totalRides: mockRides.length, totalRevenue: 250000, totalComplaints: mockComplaints.length } };
-        }
-        
-        return { success: true, data: [] };
-    }
 
     async get(endpoint, options = {}) {
         return this.request(endpoint, { ...options, method: 'GET' });
