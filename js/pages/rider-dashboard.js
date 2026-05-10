@@ -104,16 +104,25 @@ class RiderDashboard {
         this.layout.render(this.section);
 
         const content = document.getElementById('rider-dashboard-content');
-        content.addEventListener('riderPanelChange', (event) => {
-            navigateTo('rider-dashboard', event.detail.panel);
-        });
+        if (content) {
+            content.addEventListener('riderPanelChange', (event) => {
+                navigateTo('rider-dashboard', event.detail.panel);
+            });
+        }
 
         if (!this.hashChangeListenerAdded) {
             window.addEventListener('hashchange', this.handleHashChange);
             this.hashChangeListenerAdded = true;
         }
 
-        await this.loadCurrentRide();
+        // Load data from backend
+        try {
+            await this.loadRideHistory();
+            await this.loadCurrentRide();
+        } catch (e) {
+            console.error('Failed to load rider data:', e);
+        }
+
         this.renderSection(this.section);
     }
 
@@ -208,10 +217,10 @@ class RiderDashboard {
         const activeDriver = activeRide ? mockDrivers.find(d => d.id === this.currentRide.driver_id) : null;
         const activeVehicle = activeDriver ? mockVehicles.find(v => v.driver_id === activeDriver.id) : null;
 
-        // Quick stats
-        const myRides = (mockRides || []).filter(r => r.rider_id === this.currentUser.id);
+        // Quick stats using real data
+        const myRides = this.rideHistory || [];
         const completedRides = myRides.filter(r => r.status === 'Completed');
-        const totalSpent = completedRides.reduce((sum, r) => sum + (r.fare_amount || 0), 0);
+        const totalSpent = completedRides.reduce((sum, r) => sum + (parseFloat(r.final_fare) || 0), 0);
         const recent3 = completedRides.slice(0, 3);
 
         container.innerHTML = `
@@ -806,8 +815,8 @@ class RiderDashboard {
 
     // === SECTION 5: renderRatings() ===
     renderRatings(container) {
-        const completedRides = (mockRides || []).filter(ride =>
-            ride.rider_id === this.currentUser.id && ride.status === 'Completed'
+        const completedRides = (this.rideHistory || []).filter(ride =>
+            ride.status === 'Completed'
         );
         const ratings = (mockRatings || []).filter(rating =>
             rating.rated_by === 'Rider' && completedRides.some(ride => ride.id === rating.ride_id)
@@ -1006,7 +1015,7 @@ class RiderDashboard {
 
     renderComplaints(container) {
         const complaints = (mockComplaints || []).filter(c => c.filed_by === this.currentUser.id);
-        const completedRides = (mockRides || []).filter(ride => ride.rider_id === this.currentUser.id && ride.status === 'Completed');
+        const completedRides = (this.rideHistory || []).filter(ride => ride.status === 'Completed');
         const pendingRides = completedRides.filter(ride => !complaints.some(c => c.ride_id === ride.id));
 
         container.innerHTML = `
@@ -1253,7 +1262,7 @@ class RiderDashboard {
     }
 
     renderSupport(container) {
-        const recentRides = (mockRides || []).filter(r => r.rider_id === this.currentUser.id && r.status === 'Completed');
+        const recentRides = (this.rideHistory || []).filter(r => r.status === 'Completed');
 
         container.innerHTML = `
             <div class="support-layout" style="display:flex;flex-direction:column;gap:20px;">
@@ -3315,6 +3324,78 @@ class RiderDashboard {
                 }, 2000);
             });
         }
+    }
+    async loadRideHistory() {
+        try {
+            const response = await riderAPI.getRideHistory(this.currentUser.id);
+            if (response.success) {
+                this.rideHistory = response.data || [];
+            }
+        } catch (e) {
+            console.error('Error loading ride history:', e);
+            this.rideHistory = [];
+        }
+    }
+
+    initRideHistory() {
+        const listContainer = document.getElementById('ride-history-list');
+        const loadingSpinner = document.getElementById('history-loading');
+        
+        if (!listContainer) return;
+        
+        if (loadingSpinner) loadingSpinner.style.display = 'none';
+        
+        if (!this.rideHistory || this.rideHistory.length === 0) {
+            listContainer.innerHTML = `
+                <div class="empty-state" style="text-align:center;padding:40px;">
+                    <div style="font-size:48px;margin-bottom:16px;">🚗</div>
+                    <h3>No Rides Yet</h3>
+                    <p class="text-muted">You haven't taken any rides yet. Your trip history will appear here.</p>
+                    <button class="btn btn-primary" onclick="window.location.hash='#rider/book'" style="margin-top:16px;">Book Your First Ride</button>
+                </div>
+            `;
+            return;
+        }
+
+        listContainer.innerHTML = this.rideHistory.map(ride => `
+            <div class="ride-card glass">
+                <div class="ride-header">
+                    <div class="ride-date">${formatDateTime(ride.created_at)}</div>
+                    <div class="status-badge ${ride.status.toLowerCase()}">${ride.status}</div>
+                </div>
+                <div class="ride-body">
+                    <div class="ride-route">
+                        <div class="route-point pickup">
+                            <span class="dot"></span>
+                            <span class="addr">${ride.pickup_address || ride.pickup_location || 'Pickup Point'}</span>
+                        </div>
+                        <div class="route-line"></div>
+                        <div class="route-point dropoff">
+                            <span class="dot"></span>
+                            <span class="addr">${ride.dropoff_address || ride.dropoff_location || 'Destination Point'}</span>
+                        </div>
+                    </div>
+                    <div class="ride-meta">
+                        <div class="meta-item">
+                            <span class="label">Fare</span>
+                            <span class="value">${formatCurrency(ride.final_fare || ride.subtotal || 0)}</span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="label">Driver</span>
+                            <span class="value">${ride.driver_name || 'N/A'}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="ride-actions">
+                    <button class="btn btn-sm btn-outline" onclick="riderDash.openRideDetails(${ride.id})">Details</button>
+                    ${ride.status === 'Completed' ? `<button class="btn btn-sm btn-primary" onclick="riderDash.rebookRide(${ride.id})">Rebook</button>` : ''}
+                </div>
+            </div>
+        `).join('');
+    }
+
+    initPayments() {
+        console.log('Payments initialized');
     }
 }
 
