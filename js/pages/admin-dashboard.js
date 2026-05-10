@@ -591,7 +591,7 @@ class AdminDashboard {
     async loadRecentRides() {
         const container = document.getElementById('recent-rides-container');
         try {
-            const response = await adminAPI.generateReport('ride-stats', { limit: 5 });
+            const response = await apiClient.get('/rides?limit=5');
             const rides = response.data || [];
 
             if (rides.length === 0) {
@@ -608,7 +608,7 @@ class AdminDashboard {
                             <span class="badge badge-primary">${ride.status || 'Active'}</span>
                         </div>
                         <div style="font-size: 12px; color: var(--color-text-muted);">
-                            Fare: ${formatCurrency(ride.fare || 0)} | ${formatDateTime(ride.created_at)}
+                            Fare: ${formatCurrency(ride.final_fare || ride.fare || 0)} | ${formatDateTime(ride.created_at)}
                         </div>
                     </div>
                 `;
@@ -623,7 +623,7 @@ class AdminDashboard {
     async loadRecentPayments() {
         const container = document.getElementById('recent-payments-container');
         try {
-            const response = await adminAPI.generateReport('revenue-by-city'); // Reusing report logic
+            const response = await apiClient.get('/payments?limit=5');
             const payments = response.data || [];
 
             if (payments.length === 0) {
@@ -636,11 +636,11 @@ class AdminDashboard {
                 html += `
                     <div style="padding: 8px; border-left: 3px solid var(--color-success); background-color: var(--color-light-2); border-radius: 8px;">
                         <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-                            <strong>${formatCurrency(p.revenue || 0)}</strong>
-                            <span class="badge badge-success">Paid</span>
+                            <strong>${formatCurrency(p.amount || p.revenue || 0)}</strong>
+                            <span class="badge badge-success">${p.payment_status || 'Paid'}</span>
                         </div>
                         <div style="font-size: 12px; color: var(--color-text-muted);">
-                            City: ${p.city} | ${p.rides} Rides
+                            Method: ${p.payment_method || 'Unknown'} | Ride #${p.ride_id}
                         </div>
                     </div>
                 `;
