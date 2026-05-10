@@ -2420,3 +2420,235 @@
     font-size: 14px;
     color: var(--rf-text-muted);
 }
+
+/* ==============================================
+   DRIVER PERFORMANCE TAB
+   ============================================== */
+.performance-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.rating-overview-card,
+.acceptance-rate-card,
+.badges-section,
+.feedback-section {
+    background-color: rgba(57, 255, 20, 0.08); /* Neon green subtle background */
+    border: 1px solid rgba(57, 255, 20, 0.4);
+    border-radius: 12px;
+    padding: 24px;
+    color: var(--rf-text);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.acceptance-rate-card h3,
+.badges-section h3,
+.feedback-section h3 {
+    color: #39ff14;
+    margin-top: 0;
+    margin-bottom: 20px;
+}
+
+.rating-display {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.rating-score {
+    font-size: 32px;
+    font-weight: 700;
+    color: #39ff14;
+}
+
+.rating-meta {
+    display: flex;
+    gap: 16px;
+    color: var(--rf-text-muted);
+    font-size: 14px;
+}
+
+.rating-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+
+.rating-label {
+    width: 30px;
+}
+
+.rating-bar-bg {
+    flex: 1;
+    height: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.rating-bar-fill {
+    height: 100%;
+    background: #39ff14;
+}
+
+.badge-card {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(57, 255, 20, 0.2);
+    border-radius: 8px;
+    padding: 16px;
+    display: flex;
+    gap: 16px;
+    margin-bottom: 12px;
+}
+
+.badge-card.unlocked {
+    border-color: rgba(57, 255, 20, 0.6);
+    background: rgba(57, 255, 20, 0.1);
+}
+
+.badge-icon {
+    font-size: 32px;
+}
+
+.badge-name {
+    font-weight: 600;
+    color: #39ff14;
+    margin-bottom: 4px;
+}
+
+.badge-description {
+    font-size: 14px;
+    color: var(--rf-text-muted);
+}
+
+.feedback-item {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 12px;
+    border-left: 4px solid #39ff14;
+}
+
+/* ==============================================
+   DRIVER SCHEDULE TAB
+   ============================================== */
+.schedule-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.calendar-section,
+.scheduled-rides-section {
+    background-color: rgba(57, 255, 20, 0.08);
+    border: 1px solid rgba(57, 255, 20, 0.4);
+    border-radius: 12px;
+    padding: 24px;
+    color: var(--rf-text);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.calendar-header h3,
+.scheduled-rides-section h3 {
+    color: #39ff14;
+    margin-top: 0;
+    margin-bottom: 20px;
+}
+
+.calendar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.calendar-nav {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.nav-btn {
+    background: transparent;
+    border: 1px solid rgba(57, 255, 20, 0.5);
+    color: #39ff14;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+.nav-btn:hover {
+    background: rgba(57, 255, 20, 0.2);
+}
+
+.scheduled-ride-item {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(57, 255, 20, 0.3);
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.ride-date {
+    font-weight: 600;
+    color: #39ff14;
+}
+
+.ride-estimate {
+    color: #39ff14;
+    font-weight: 600;
+}
+
+.time-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.time-label {
+    width: 60px;
+    font-size: 12px;
+    color: var(--rf-text-muted);
+}
+
+.time-slot {
+    flex: 1;
+    height: 30px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+    cursor: pointer;
+    border: 1px solid rgba(255,255,255,0.1);
+}
+
+.time-slot.available {
+    background: rgba(57, 255, 20, 0.2);
+    border-color: rgba(57, 255, 20, 0.5);
+}
+
+.time-header {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.day-label {
+    width: 60px;
+}
+
+.day-header {
+    flex: 1;
+    text-align: center;
+    font-size: 14px;
+}
+
+.day-header.today .day-date {
+    color: #39ff14;
+    font-weight: 700;
+}
