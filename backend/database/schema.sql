@@ -360,3 +360,12 @@ DO
 -- ================================================================
 INSERT INTO fare_rules (vehicle_type, base_rate, per_km_rate, per_minute_rate) VALUES
 ('Economy', 50, 20, 5), ('Premium', 100, 35, 8), ('Bike', 30, 15, 3);
+
+-- ================================================================
+-- PERFORMANCE INDEXES
+-- ================================================================
+CREATE INDEX idx_rides_status ON rides(status);
+CREATE INDEX idx_rides_rider ON rides(rider_id);
+CREATE INDEX idx_rides_driver ON rides(driver_id);
+CREATE INDEX idx_payments_ride ON payments(ride_id);
+CREATE INDEX idx_locations_city ON locations(city);

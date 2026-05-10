@@ -27,8 +27,28 @@ async function execute(sql, params = []) {
   return result.affectedRows;
 }
 
+/**
+ * Execute multiple queries in a transaction
+ * @param {Function} callback - Async function that takes connection and performs queries
+ */
+async function transaction(callback) {
+  const conn = await db.pool.getConnection();
+  try {
+    await conn.beginTransaction();
+    const result = await callback(conn);
+    await conn.commit();
+    return result;
+  } catch (error) {
+    await conn.rollback();
+    throw error;
+  } finally {
+    conn.release();
+  }
+}
+
 module.exports = {
   query,
   insert,
-  execute
+  execute,
+  transaction
 };

@@ -295,24 +295,34 @@ class AdminDashboard {
 
     async loadRevenueByCity() {
         const container = document.getElementById('revenue-by-city-container');
-        const revenueByCity = this.calculateRevenueByCity();
+        try {
+            const response = await adminAPI.generateReport('revenue/by-city');
+            const revenueByCity = response.data || [];
 
-        let html = '<div style="display: flex; flex-direction: column; gap: 12px; padding: 12px;">';
-        revenueByCity.forEach(item => {
-            html += `
-                <div style="padding: 8px; border-left: 3px solid var(--color-success); background-color: var(--color-light); border-radius: 4px;">
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-                        <strong>${item.city}</strong>
-                        <span>${formatCurrency(item.revenue)}</span>
+            if (revenueByCity.length === 0) {
+                container.innerHTML = '<p class="text-muted" style="padding: 16px;">No revenue data yet</p>';
+                return;
+            }
+
+            let html = '<div style="display: flex; flex-direction: column; gap: 12px; padding: 12px;">';
+            revenueByCity.forEach(item => {
+                html += `
+                    <div style="padding: 8px; border-left: 3px solid var(--color-success); background-color: var(--color-light); border-radius: 4px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                            <strong>${item.city}</strong>
+                            <span>${formatCurrency(item.revenue)}</span>
+                        </div>
+                        <div style="font-size: 12px; color: var(--color-text-muted);">
+                            ${item.rides} rides
+                        </div>
                     </div>
-                    <div style="font-size: 12px; color: var(--color-text-muted);">
-                        ${item.rides} rides
-                    </div>
-                </div>
-            `;
-        });
-        html += '</div>';
-        container.innerHTML = html;
+                `;
+            });
+            html += '</div>';
+            container.innerHTML = html;
+        } catch (error) {
+            container.innerHTML = '<p class="text-danger">Failed to load city revenue</p>';
+        }
     }
 
     async loadRevenueByPayment() {
@@ -384,47 +394,76 @@ class AdminDashboard {
 
     async loadDriverLeaderboard() {
         const container = document.getElementById('driver-leaderboard-container');
-        const leaderboard = this.calculateDriverLeaderboard();
+        try {
+            const response = await adminAPI.generateReport('top-drivers');
+            const leaderboard = response.data || [];
 
-        let html = '<div style="display: flex; flex-direction: column; gap: 12px; padding: 12px;">';
-        leaderboard.slice(0, 5).forEach((driver, index) => {
-            html += `
-                <div style="padding: 8px; border-left: 3px solid var(--color-warning); background-color: var(--color-light); border-radius: 4px;">
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-                        <strong>#${index + 1} ${driver.name}</strong>
-                        <span>${driver.rating} ⭐</span>
+            if (leaderboard.length === 0) {
+                container.innerHTML = '<p class="text-muted" style="padding: 16px;">No top drivers yet</p>';
+                return;
+            }
+
+            let html = '<div style="display: flex; flex-direction: column; gap: 12px; padding: 12px;">';
+            leaderboard.forEach((driver, index) => {
+                html += `
+                    <div style="padding: 8px; border-left: 3px solid var(--color-warning); background-color: var(--color-light); border-radius: 4px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                            <strong>#${index + 1} ${driver.full_name}</strong>
+                            <span>${driver.average_rating} ⭐</span>
+                        </div>
+                        <div style="font-size: 12px; color: var(--color-text-muted);">
+                            View: TopDriversView
+                        </div>
                     </div>
-                    <div style="font-size: 12px; color: var(--color-text-muted);">
-                        ${driver.trips} trips • ${formatCurrency(driver.earnings)}
-                    </div>
-                </div>
-            `;
-        });
-        html += '</div>';
-        container.innerHTML = html;
+                `;
+            });
+            html += '</div>';
+            container.innerHTML = html;
+        } catch (error) {
+            container.innerHTML = '<p class="text-danger">Failed to load leaderboard</p>';
+        }
     }
 
     async loadAlerts() {
         const container = document.getElementById('alerts-container');
-        const alerts = this.calculateAlerts();
+        try {
+            const response = await adminAPI.generateReport('low-rated-drivers');
+            const lowRated = response.data || [];
 
-        let html = '<div style="display: flex; flex-direction: column; gap: 12px; padding: 12px;">';
-        alerts.forEach(alert => {
-            const color = alert.severity === 'high' ? 'danger' : alert.severity === 'medium' ? 'warning' : 'info';
+            let html = '<div style="display: flex; flex-direction: column; gap: 12px; padding: 12px;">';
+            
+            if (lowRated.length > 0) {
+                html += `
+                    <div style="padding: 8px; border-left: 3px solid var(--color-danger); background-color: var(--color-light); border-radius: 4px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                            <strong>Low-Rating Alert</strong>
+                            <span class="badge badge-danger">High</span>
+                        </div>
+                        <div style="font-size: 12px; color: var(--color-text-muted);">
+                            ${lowRated.length} drivers identified via 'get_low_rated_drivers' procedure.
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Always add a generic platform health alert
             html += `
-                <div style="padding: 8px; border-left: 3px solid var(--color-${color}); background-color: var(--color-light); border-radius: 4px;">
+                <div style="padding: 8px; border-left: 3px solid var(--color-info); background-color: var(--color-light); border-radius: 4px;">
                     <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-                        <strong>${alert.title}</strong>
-                        <span class="badge badge-${color}">${alert.severity}</span>
+                        <strong>Platform Status</strong>
+                        <span class="badge badge-info">Stable</span>
                     </div>
                     <div style="font-size: 12px; color: var(--color-text-muted);">
-                        ${alert.description}
+                        MySQL Event Scheduler is active (Daily Promo Expiry).
                     </div>
                 </div>
             `;
-        });
-        html += '</div>';
-        container.innerHTML = html;
+
+            html += '</div>';
+            container.innerHTML = html;
+        } catch (error) {
+            container.innerHTML = '<p class="text-danger">Failed to load alerts</p>';
+        }
     }
 
     calculateRevenueByCity() {

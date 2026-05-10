@@ -15,5 +15,6 @@ router.get('/cancellations', authMiddleware, requireAdmin, ctrl.getCancellationA
 router.get('/complaints', authMiddleware, requireAdmin, ctrl.getComplaintsAnalysis);
 router.get('/top-drivers', authMiddleware, requireAdmin, query('limit').optional().isInt(), ctrl.getTopDrivers);
 router.get('/health', authMiddleware, requireAdmin, ctrl.getPlatformHealth);
+router.get('/low-rated-drivers', authMiddleware, requireAdmin, ctrl.getLowRatedDriversReport);
 
 module.exports = router;

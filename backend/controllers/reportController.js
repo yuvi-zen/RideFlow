@@ -40,14 +40,10 @@ async function getRevenueByMethod(req, res, next) {
 async function getRevenueByCity(req, res, next) {
   try {
     const conn = await db.getConnection();
-    const [result] = await conn.query(
-      `SELECT l.city, SUM(p.amount) as revenue, COUNT(r.id) as rides
-       FROM rides r JOIN locations l ON r.pickup_location_id = l.id
-       JOIN payments p ON r.id = p.ride_id WHERE p.status = 'Paid'
-       GROUP BY l.city ORDER BY revenue DESC`
-    );
+    const [result] = await conn.query('CALL get_revenue_by_city()');
     conn.release();
-    return successResponse(res, result, 'Revenue by city retrieved', 200);
+    // MySQL returns results in nested array for procedures: [ [results], {metadata} ]
+    return successResponse(res, result[0], 'Revenue by city retrieved', 200);
   } catch (error) {
     next(error);
   }
@@ -125,15 +121,8 @@ async function getComplaintsAnalysis(req, res, next) {
 
 async function getTopDrivers(req, res, next) {
   try {
-    const { limit = 10 } = req.query;
     const conn = await db.getConnection();
-    const [result] = await conn.query(
-      `SELECT u.id, u.full_name, d.average_rating, d.total_trips, COUNT(r.id) as rides_completed
-       FROM drivers d JOIN users u ON d.user_id = u.id
-       LEFT JOIN rides r ON d.id = r.driver_id AND r.status = 'Completed'
-       GROUP BY d.id ORDER BY d.average_rating DESC, d.total_trips DESC LIMIT ?`,
-      [parseInt(limit)]
-    );
+    const [result] = await conn.query('SELECT * FROM TopDriversView LIMIT 10');
     conn.release();
     return successResponse(res, result, 'Top drivers retrieved', 200);
   } catch (error) {
@@ -146,7 +135,7 @@ async function getPlatformHealth(req, res, next) {
     const conn = await db.getConnection();
     const [users] = await conn.query(`SELECT COUNT(*) as count FROM users`);
     const [drivers] = await conn.query(`SELECT COUNT(*) as count FROM drivers WHERE verification_status = 'Verified'`);
-    const [activeRides] = await conn.query(`SELECT COUNT(*) as count FROM rides WHERE status = 'Started' OR status = 'Accepted'`);
+    const [activeRides] = await conn.query(`SELECT COUNT(*) as count FROM ActiveRidesView`);
     const [revenue] = await conn.query(`SELECT SUM(amount) as total FROM payments WHERE status = 'Paid'`);
     conn.release();
 
@@ -161,8 +150,19 @@ async function getPlatformHealth(req, res, next) {
   }
 }
 
+async function getLowRatedDriversReport(req, res, next) {
+  try {
+    const conn = await db.getConnection();
+    const [result] = await conn.query('CALL get_low_rated_drivers()');
+    conn.release();
+    return successResponse(res, result[0], 'Low rated drivers report retrieved', 200);
+  } catch (error) {
+    next(error);
+  }
+}
+
 module.exports = {
   getRevenueByDate, getRevenueByMethod, getRevenueByCity, getDriverEarnings,
   getRideStats, getCancellationAnalysis, getComplaintsAnalysis, getTopDrivers,
-  getPlatformHealth
+  getPlatformHealth, getLowRatedDriversReport
 };
