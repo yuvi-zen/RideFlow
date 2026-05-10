@@ -98,6 +98,38 @@ exports.getCount = async (role = null) => {
 };
 
 /**
+ * Get all users with filters (status, search, etc)
+ */
+exports.getAllWithFilters = async (filters = {}) => {
+  let sql = `SELECT id, full_name, email, phone_number, role, account_status, profile_photo, registration_date, created_at FROM ${tableName} WHERE 1=1`;
+  const params = [];
+
+  if (filters.role) { sql += ` AND role = ?`; params.push(filters.role); }
+  if (filters.status) { sql += ` AND account_status = ?`; params.push(filters.status); }
+  if (filters.search) { sql += ` AND (email LIKE ? OR phone_number LIKE ?)`; params.push(`%${filters.search}%`, `%${filters.search}%`); }
+
+  sql += ` ORDER BY created_at DESC LIMIT ? OFFSET ?`;
+  params.push(filters.limit || 50, filters.offset || 0);
+
+  return await db.query(sql, params);
+};
+
+/**
+ * Get user count with filters
+ */
+exports.getCountWithFilters = async (filters = {}) => {
+  let sql = `SELECT COUNT(*) as count FROM ${tableName} WHERE 1=1`;
+  const params = [];
+
+  if (filters.role) { sql += ` AND role = ?`; params.push(filters.role); }
+  if (filters.status) { sql += ` AND account_status = ?`; params.push(filters.status); }
+  if (filters.search) { sql += ` AND (email LIKE ? OR phone_number LIKE ?)`; params.push(`%${filters.search}%`, `%${filters.search}%`); }
+
+  const rows = await db.query(sql, params);
+  return { count: rows[0].count || 0 };
+};
+
+/**
  * Check if email exists
  */
 exports.emailExists = async (email) => {
