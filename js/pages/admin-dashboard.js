@@ -823,6 +823,7 @@ class AdminDashboard {
                         ` : ''}
                     </div>
                 `;
+            });
             container.innerHTML = html;
         } catch(e) { container.innerHTML = '<p class="text-danger" style="padding:16px;">Failed to load complaints.</p>'; }
     }
