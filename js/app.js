@@ -99,13 +99,11 @@ class RideFlowApp {
             app.className = '';
         }
 
-        // Update navbar and body theme role
+        // Update navbar
         const user = authStorage.getCurrentUser();
         if (user) {
-            document.body.setAttribute('data-role', user.role);
             navBar.render(user);
         } else {
-            document.body.removeAttribute('data-role');
             navBar.render(null);
         }
 
