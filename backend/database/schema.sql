@@ -286,10 +286,18 @@ LEFT JOIN users u_driver ON d.user_id = u_driver.id
 WHERE r.status IN ('Accepted', 'Driver En Route', 'In Progress');
 
 CREATE OR REPLACE VIEW TopDriversView AS
-SELECT d.id AS driver_id, u.full_name, d.average_rating
+SELECT 
+    d.id AS driver_id,
+    u.full_name,
+    COALESCE(d.average_rating, 0) AS average_rating,
+    COALESCE(COUNT(DISTINCT r.id), 0) AS total_rides,
+    COALESCE(SUM(CASE WHEN p.payment_status = 'Paid' THEN p.amount ELSE 0 END), 0) AS total_earnings
 FROM drivers d
 JOIN users u ON d.user_id = u.id
-WHERE d.average_rating > 4.5;
+LEFT JOIN rides r ON r.driver_id = d.id AND r.status = 'Completed'
+LEFT JOIN payments p ON p.ride_id = r.id
+GROUP BY d.id, u.full_name, d.average_rating
+ORDER BY d.average_rating DESC;
 
 -- ================================================================
 -- STORED PROCEDURES
