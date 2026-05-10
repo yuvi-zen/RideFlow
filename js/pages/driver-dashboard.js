@@ -2596,3 +2596,6 @@ class EarningsCalculator {
         };
     }
 }
+
+// Global instance — required by app.js (same pattern as adminDash, riderDash)
+const driverDash = new DriverDashboard();
