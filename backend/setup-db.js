@@ -68,39 +68,81 @@ async function setupDatabase() {
     const riderHash = await bcrypt.hash('Rider@123', ROUNDS);
     const driverHash = await bcrypt.hash('Driver@123', ROUNDS);
 
-    // Users
+    // --- BULK SEEDING FOR RUBRIC COMPLIANCE ---
+    console.log('Seeding diverse data for reports/views/triggers...');
+    
+    // Add more Riders
     await connection.query(
       `INSERT INTO users (full_name, email, phone_number, password_hash, role, account_status) VALUES 
-      (?, ?, ?, ?, ?, ?),
-      (?, ?, ?, ?, ?, ?),
-      (?, ?, ?, ?, ?, ?)`,
-      [
-        'Ahmed Admin', 'admin@rideflow.com', '03001234567', adminHash, 'Admin', 'Active',
-        'Alexander Rider', 'rider@rideflow.com', '03009876543', riderHash, 'Rider', 'Active',
-        'Aizen Driver', 'driver@rideflow.com', '03005555555', driverHash, 'Driver', 'Active'
-      ]
+      ('Sajid Rider', 'sajid@test.com', '03110000001', ?, 'Rider', 'Active'),
+      ('Fatima Rider', 'fatima@test.com', '03110000002', ?, 'Rider', 'Active'),
+      ('John Doe', 'john@test.com', '03110000003', ?, 'Rider', 'Active')`,
+      [riderHash, riderHash, riderHash]
     );
 
-    // Get the driver user ID (Aizen is the 3rd one)
-    const [userRows] = await connection.query("SELECT id FROM users WHERE email = 'driver@rideflow.com'");
-    const userId = userRows[0].id;
-
-    // Driver Profile
-    const [driverResult] = await connection.query(
-      `INSERT INTO drivers (user_id, license_number, cnic, availability_status, verification_status, current_location_lat, current_location_lng) 
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [userId, 'ABC-12345', '42101-1234567-1', 'Online', 'Verified', 33.6844, 73.0479]
-    );
-    const driverId = driverResult.insertId;
-
-    // Vehicle
+    // Add more Drivers
     await connection.query(
-      `INSERT INTO vehicles (driver_id, make, model, year, color, license_plate, vehicle_type, verification_status) 
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [driverId, 'Toyota', 'Corolla', 2022, 'White', 'ABC-001', 'Economy', 'Verified']
+      `INSERT INTO users (full_name, email, phone_number, password_hash, role, account_status) VALUES 
+      ('Usman Driver', 'usman@test.com', '03220000001', ?, 'Driver', 'Active'),
+      ('Ali Driver', 'ali@test.com', '03220000002', ?, 'Driver', 'Active'),
+      ('Zain LowRated', 'zain@test.com', '03220000003', ?, 'Driver', 'Active')`,
+      [driverHash, driverHash, driverHash]
     );
 
-    console.log('✓ Demo data seeded\n');
+    // Register Drivers and Vehicles
+    const [allDrivers] = await connection.query("SELECT id, full_name FROM users WHERE role = 'Driver'");
+    for (const d of allDrivers) {
+      const [drResult] = await connection.query(
+        `INSERT INTO drivers (user_id, license_number, cnic, availability_status, verification_status, average_rating) 
+         VALUES (?, ?, ?, 'Online', 'Verified', 0)`,
+        [d.id, 'LIC-' + d.id, 'CNIC-' + d.id]
+      );
+      const drId = drResult.insertId;
+      
+      await connection.query(
+        `INSERT INTO vehicles (driver_id, make, model, year, color, license_plate, vehicle_type, verification_status) 
+         VALUES (?, 'Honda', 'Civic', 2021, 'Black', ?, 'Economy', 'Verified')`,
+        [drId, 'PLATE-' + drId]
+      );
+
+    }
+
+    // Seed some Locations
+    await connection.query(
+      `INSERT INTO locations (address, city, latitude, longitude) VALUES 
+      ('Safa Gold Mall', 'Islamabad', 33.7167, 73.0500),
+      ('Dolmen Mall', 'Karachi', 24.8138, 67.0311),
+      ('Emporium Mall', 'Lahore', 31.4676, 74.2662)`
+    );
+
+    // Seed Completed Rides for Revenue Reports
+    const [riders] = await connection.query("SELECT id FROM users WHERE role = 'Rider'");
+    const [drProfiles] = await connection.query("SELECT id, user_id FROM drivers");
+    
+    await connection.query(
+      `INSERT INTO rides (rider_id, driver_id, pickup_location_id, dropoff_location_id, status, final_fare, distance_km) VALUES 
+      (?, ?, 1, 1, 'Completed', 1500, 15.5),
+      (?, ?, 2, 2, 'Completed', 2800, 25.0),
+      (?, ?, 3, 3, 'Completed', 900, 8.2),
+      (?, ?, 1, 1, 'Completed', 2100, 18.0)`,
+      [riders[0].id, drProfiles[0].id, riders[1].id, drProfiles[1].id, riders[2].id, drProfiles[0].id, riders[0].id, drProfiles[1].id]
+    );
+
+    // Get the ride IDs to link ratings
+    const [rideRows] = await connection.query("SELECT id, driver_id FROM rides");
+    
+    // Add ratings linked to rides
+    for (const r of rideRows) {
+      const driver = drProfiles.find(dp => dp.id === r.driver_id);
+      const [user] = await connection.query("SELECT full_name FROM users WHERE id = ?", [driver.user_id]);
+      const score = user[0].full_name.includes('LowRated') ? 2 : 5;
+      
+      await connection.query(
+        `INSERT INTO ratings (ride_id, rated_user_id, rated_by, score, comment) 
+         VALUES (?, ?, 'Rider', ?, 'Auto-seeded rating')`,
+        [r.id, driver.user_id, score]
+      );
+    }
     console.log('=== Database Setup Complete ===\n');
     console.log('Test Credentials:');
     console.log('  Admin:  admin@rideflow.com / Admin@123');
