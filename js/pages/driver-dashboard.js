@@ -2205,19 +2205,25 @@ class DriverDashboard {
     }
 
     getPerformanceData() {
-        return {
-            overallRating: 4.7,
-            totalRatings: 127,
-            ratingTrend: 0.2,
-            ratingDistribution: { 5: 89, 4: 28, 3: 8, 2: 2, 1: 0 },
-            currentAcceptanceRate: 92,
-            acceptanceChange: 3,
-            acceptanceHistory: [85, 87, 89, 91, 88, 90, 92, 94, 91, 93, 90, 92, 89, 91, 92],
-            badges: [
-                { name: '100 Trips', icon: '🏆', unlocked: true },
-                { name: 'Top Rated', icon: '⭐', unlocked: true },
-                { name: 'Veteran Driver', icon: '🎖️', unlocked: false, progress: 75, current: 75, target: 100 }
-            ],
+        if (this.driver) {
+            return {
+                overallRating: this.driver.average_rating || 0,
+                totalRatings: this.driver.total_trips || 0, // Using trips as proxy for ratings if not separated
+                ratingTrend: 0,
+                ratingDistribution: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 },
+                currentAcceptanceRate: 100,
+                acceptanceChange: 0,
+                acceptanceHistory: [100, 100, 100],
+                badges: [
+                    { name: '100 Trips', icon: '🏆', unlocked: (this.driver.total_trips >= 100) },
+                    { name: 'Top Rated', icon: '⭐', unlocked: (this.driver.average_rating >= 4.5) },
+                    { name: 'Veteran Driver', icon: '🎖️', unlocked: false, progress: Math.min(100, this.driver.total_trips), current: this.driver.total_trips, target: 100 }
+                ],
+                recentFeedback: [],
+                leaderboardRank: '-',
+                monthlyTrips: this.driver.total_trips || 0
+            };
+        }
             recentFeedback: [
                 { rating: 5, comment: 'Great service! Very professional driver.', date: '2 days ago' },
                 { rating: 4, comment: 'Good ride, but took a longer route.', date: '1 week ago' },
