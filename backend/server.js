@@ -1,6 +1,10 @@
 const app = require('./app');
 const { port, nodeEnv } = require('./config/env');
 
-app.listen(port, () => {
-  console.log(`RideFlow backend is running in ${nodeEnv} mode on port ${port}`);
-});
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(port, () => {
+    console.log(`RideFlow backend is running in ${nodeEnv} mode on port ${port}`);
+  });
+}
+
+module.exports = app;
