@@ -46,11 +46,11 @@ exports.createRide = async (rideData) => {
  * Find ride by ID with full details
  */
 exports.findById = async (id) => {
-  const sql = `SELECT r.id, r.rider_id, r.driver_id, r.vehicle_id, r.status,
+    const sql = `SELECT r.id, r.rider_id, r.driver_id, r.vehicle_id, r.status,
                r.pickup_location_id, r.dropoff_location_id,
-               r.scheduled_time, r.pickup_time, r.dropoff_time,
+               r.pickup_time, r.dropoff_time,
                r.distance_km, r.final_fare, r.subtotal,
-               r.payment_method,
+               r.payment_status,
                r.created_at, r.updated_at,
                u.full_name as rider_name, u.phone_number as rider_phone,
                d.full_name as driver_name, d.phone_number as driver_phone,
@@ -175,9 +175,7 @@ exports.updateStatus = async (rideId, newStatus) => {
   const params = [newStatus];
 
   // Auto-update timestamps based on status
-  if (newStatus === 'Accepted') {
-    updateFields.push('accepted_time = NOW()');
-  } else if (newStatus === 'In Progress') {
+  if (newStatus === 'In Progress') {
     updateFields.push('pickup_time = NOW()');
   } else if (newStatus === 'Completed') {
     updateFields.push('dropoff_time = NOW()');

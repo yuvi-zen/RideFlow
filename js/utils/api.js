@@ -3,7 +3,8 @@
  * Currently uses mock data but structured to easily switch to real MySQL APIs
  */
 
-const API_BASE_URL = 'http://localhost:4000/api';
+const API_BASE_URL = window.location.origin.includes('localhost') ? 'http://localhost:4000/api' : '/api';
+console.log('API Client initialized with Base URL:', API_BASE_URL);
 
 class APIClient {
     constructor(baseURL = API_BASE_URL) {
@@ -326,8 +327,8 @@ const driverAPI = {
         return apiClient.get('/rides?status=Requested');
     },
 
-    async acceptRide(rideId, driverId) {
-        return apiClient.put(`/rides/${rideId}/accept`, { driver_id: driverId });
+    async acceptRide(rideId, driverId, vehicleId) {
+        return apiClient.put(`/rides/${rideId}/accept`, { driver_id: driverId, vehicle_id: vehicleId });
     },
 
     async rejectRide(rideId) {

@@ -2961,11 +2961,12 @@ class RiderDashboard {
         const dropoffId = getLocId(rideRequest.dropoff.address);
 
         // Call the backend API
-        if (window.riderAPI) {
             window.riderAPI.requestRide({
                 pickup_location_id: pickupId,
                 dropoff_location_id: dropoffId,
-                ride_type: this._selectedRideType === 'bike' ? 'Bike' : (this._selectedRideType === 'premium' ? 'Premium' : 'Economy')
+                ride_type: this._selectedRideType === 'bike' ? 'Bike' : (this._selectedRideType === 'premium' ? 'Premium' : 'Economy'),
+                distance_km: this._lastCalculatedDistance || 0,
+                estimated_fare: this._lastCalculatedFare || 0
             }).then(response => {
                 console.log('Ride requested on server:', response);
                 if (response && response.id) {
@@ -3039,24 +3040,29 @@ class RiderDashboard {
 
         showToast('🔍 Searching for your driver...', 'info');
 
-        // Listen for status changes
-        this._rideUnsubscribe = window.RideState.onChange(function (updatedRide) {
-            if (!updatedRide) {
-                if (self._rideUnsubscribe) { self._rideUnsubscribe(); self._rideUnsubscribe = null; }
-                self.renderSection('overview');
-                return;
-            }
-            if (updatedRide.status === 'accepted') {
-                if (self._rideUnsubscribe) { self._rideUnsubscribe(); self._rideUnsubscribe = null; }
-                self._showDriverFoundScreen(updatedRide);
-            }
-            if (updatedRide.status === 'no_driver_found') {
-                if (self._rideUnsubscribe) { self._rideUnsubscribe(); self._rideUnsubscribe = null; }
-                showToast('❌ No drivers available. Try again.', 'error');
-                window.RideState.clearRide();
-                self.renderSection('overview');
-            }
-        });
+        // Poll backend for ride status updates
+        this._rideUnsubscribe = setInterval(async () => {
+            try {
+                if (ride.server_id) {
+                    const response = await riderAPI.getCurrentRide(this.currentUser.id);
+                    if (response.success && response.data) {
+                        const r = response.data;
+                        if (['Accepted', 'Driver En Route', 'In Progress'].includes(r.status)) {
+                            clearInterval(this._rideUnsubscribe);
+                            this._rideUnsubscribe = null;
+                            this._showDriverFoundScreen(r);
+                        }
+                    }
+                } else {
+                    const mockRide = window.RideState.getRide();
+                    if (mockRide && mockRide.status === 'accepted') {
+                        clearInterval(this._rideUnsubscribe);
+                        this._rideUnsubscribe = null;
+                        this._showDriverFoundScreen(mockRide);
+                    }
+                }
+            } catch (e) { console.error('Poll error', e); }
+        }, 3000);
     }
 
     // ── PHASE 2: Driver Found Screen ─────────────────────────────

@@ -21,7 +21,14 @@ async function requestRide(req, res, next) {
       return validationErrorResponse(res, errors.array());
     }
 
-    const { pickup_location_id, dropoff_location_id, ride_type = 'Regular', scheduled_time } = req.body;
+    const { 
+      pickup_location_id, 
+      dropoff_location_id, 
+      ride_type = 'Regular', 
+      scheduled_time,
+      distance_km,
+      estimated_fare
+    } = req.body;
 
     // Fetch pickup coordinates for driver matching
     const [locations] = await db.pool.query('SELECT latitude, longitude FROM locations WHERE id = ?', [pickup_location_id]);
@@ -33,7 +40,9 @@ async function requestRide(req, res, next) {
       pickup_location_id,
       dropoff_location_id,
       ride_type,
-      scheduled_time
+      scheduled_time,
+      estimated_distance: distance_km,
+      estimated_fare
     });
 
     // Find matching drivers near pickup
@@ -160,7 +169,14 @@ async function acceptRide(req, res, next) {
     }
 
     // Assign driver and update status
-    const updated = await rideModel.assignDriver(rideId, driver.id, ride.vehicle_id || driver.vehicle_id);
+    let vehicleId = req.body.vehicle_id;
+    if (!vehicleId) {
+      // Find first verified vehicle for this driver
+      const [v] = await db.pool.query('SELECT id FROM vehicles WHERE driver_id = ? AND verification_status = "Verified" LIMIT 1', [driver.id]);
+      vehicleId = v[0]?.id;
+    }
+
+    const updated = await rideModel.assignDriver(rideId, driver.id, vehicleId);
     const accepted = await rideModel.updateStatus(rideId, 'Accepted');
 
     return successResponse(res, accepted, 'Ride accepted successfully', 200);
