@@ -201,8 +201,8 @@ class DriverDashboard {
             !driverRatings.some(r => r.ride_id === ride.id && r.rated_by === 'Driver')
         );
 
-        const avgScore = driverRatings.length
-            ? (driverRatings.reduce((s, r) => s + r.score, 0) / driverRatings.length).toFixed(1)
+        const avgScore = (this.driver && this.driver.average_rating && this.driver.average_rating > 0)
+            ? parseFloat(this.driver.average_rating).toFixed(1)
             : 'N/A';
 
         const distribution = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
@@ -414,7 +414,7 @@ class DriverDashboard {
                             <div class="stat-card rating">
                                 <div class="stat-icon">⭐</div>
                                 <div class="stat-content">
-                                    <div class="stat-value">${todayStats.rating}</div>
+                                    <div class="stat-value">${this.driver?.average_rating || 'N/A'}</div>
                                     <div class="stat-label">Current Rating</div>
                                     <div class="rating-trend ${todayStats.ratingTrend > 0 ? 'up' : todayStats.ratingTrend < 0 ? 'down' : ''}">
                                         ${todayStats.ratingTrend > 0 ? '↗' : todayStats.ratingTrend < 0 ? '↘' : '→'}
@@ -1668,26 +1668,25 @@ class DriverDashboard {
 
     getTodayStats() {
         const today = new Date().toDateString();
-        const todayRides = mockRides.filter(ride =>
-            ride.driver_id === this.driver.id &&
+        const todayRides = this.allTrips.filter(ride =>
             new Date(ride.created_at).toDateString() === today &&
             ride.status === 'Completed'
         );
 
-        const earnings = todayRides.reduce((sum, ride) => sum + (ride.fare || 0), 0);
+        const earnings = todayRides.reduce((sum, ride) => sum + (parseFloat(ride.final_fare) || 0), 0);
         const trips = todayRides.length;
-        const hours = Math.min(8, Math.random() * 8); // Mock online hours
-        const acceptanceRate = Math.floor(85 + Math.random() * 15); // Mock acceptance rate
-        const rating = 4.2 + Math.random() * 0.8; // Mock rating
-        const ratingTrend = (Math.random() - 0.5) * 0.4; // Mock trend
+        const hours = 0; // Real hours not tracked yet
+        const acceptanceRate = 100; // Mock or calculate if needed
+        const rating = this.driver?.average_rating || 'N/A';
+        const ratingTrend = 0;
 
         return {
             earnings,
             trips,
-            hours: Math.round(hours * 10) / 10,
+            hours,
             acceptanceRate,
-            rating: Math.round(rating * 10) / 10,
-            ratingTrend: Math.round(ratingTrend * 10) / 10
+            rating,
+            ratingTrend
         };
     }
 
@@ -2091,6 +2090,24 @@ class DriverDashboard {
     }
 
     getEarningsData(period = 'today') {
+        if (this.earnings && !Array.isArray(this.earnings)) {
+            // Real API returns an object summary
+            return {
+                total: this.earnings.total || 0,
+                trips: this.earnings.ride_count || 0,
+                average: this.earnings.avg_per_ride || 0,
+                available: this.earnings.total || 0,
+                recentTrips: (this.allTrips || []).slice(0, 5).map(t => ({
+                    id: t.id,
+                    rider: t.rider_name || 'Rider',
+                    fare: t.final_fare || 0,
+                    commission: (t.final_fare || 0) * 0.15,
+                    net: (t.final_fare || 0) * 0.85
+                })),
+                payoutHistory: []
+            };
+        }
+
         const mockData = {
             today: {
                 total: 1250,

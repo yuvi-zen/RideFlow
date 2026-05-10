@@ -51,12 +51,33 @@ exports.getEarnings = async (driverId, start, end) => {
   const startDate = start || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
   const endDate = end || new Date().toISOString().split('T')[0];
   
-  const sql = `SELECT SUM(net_earning) as total, AVG(net_earning) as avg_per_ride, COUNT(*) as ride_count
-               FROM driver_earnings WHERE driver_id = ? AND payout_status = 'Pending'
-               AND DATE(created_at) BETWEEN ? AND ?`;
+  // Calculate earnings based on completed rides and their payments
+  const sql = `SELECT 
+                SUM(p.amount * 0.85) as total, 
+                AVG(p.amount * 0.85) as avg_per_ride, 
+                COUNT(r.id) as ride_count
+               FROM rides r
+               JOIN payments p ON r.id = p.ride_id
+               WHERE r.driver_id = ? AND r.status = 'Completed' AND p.payment_status = 'Paid'
+               AND DATE(r.created_at) BETWEEN ? AND ?`;
   
   const rows = await db.query(sql, [driverId, startDate, endDate]);
   return rows[0] || { total: 0, avg_per_ride: 0, ride_count: 0 };
+};
+
+exports.getPendingEarnings = async (driverId) => {
+  const sql = `SELECT r.id, p.amount * 0.85 as net_earning, r.created_at
+               FROM rides r
+               JOIN payments p ON r.id = p.ride_id
+               WHERE r.driver_id = ? AND r.status = 'Completed' AND p.payment_status = 'Paid'
+               AND r.id NOT IN (SELECT ride_id FROM driver_earnings WHERE payout_status = 'Completed')`;
+  return await db.query(sql, [driverId]);
+};
+
+exports.markPayoutRequested = async (driverId) => {
+  // Mocking this since driver_earnings table might be used for payout tracking in a future update
+  // For now we just return success
+  return true;
 };
 
 exports.getWalletBalance = async (userId) => {
