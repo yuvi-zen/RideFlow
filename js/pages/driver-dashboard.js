@@ -2130,6 +2130,10 @@ class DriverDashboard {
         return mockData[period] || mockData.today;
     }
 
+    getEarningsChartData() {
+        return [120, 150, 180, 140, 200, 250, 220]; // Mock 7-day data for chart
+    }
+
     renderEarningsChart(data) {
         const maxValue = Math.max(...data);
         const chartWidth = 700;
