@@ -1,6 +1,7 @@
 /**
  * Ride Routes
  * RESTful endpoints for ride management
+ * NOTE: Specific named routes MUST come before /:id wildcard
  */
 
 const express = require('express');
@@ -26,17 +27,6 @@ router.post(
 );
 
 /**
- * GET /api/rides/:id
- * Get ride details
- */
-router.get(
-  '/:id',
-  authMiddleware,
-  param('id').isInt().toInt(),
-  rideController.getRide
-);
-
-/**
  * GET /api/rides
  * List rides with filters
  */
@@ -48,6 +38,45 @@ router.get(
   query('limit').optional().isInt({ min: 1, max: 100 }).toInt(),
   query('offset').optional().isInt({ min: 0 }).toInt(),
   rideController.listRides
+);
+
+/**
+ * GET /api/rides/user/:userId
+ * Get rider's ride history
+ * MUST be before /:id
+ */
+router.get(
+  '/user/:userId',
+  authMiddleware,
+  param('userId').isInt().toInt(),
+  query('limit').optional().isInt({ min: 1, max: 100 }).toInt(),
+  query('offset').optional().isInt({ min: 0 }).toInt(),
+  rideController.getRiderHistory
+);
+
+/**
+ * GET /api/rides/driver/:driverId
+ * Get driver's completed rides
+ * MUST be before /:id
+ */
+router.get(
+  '/driver/:driverId',
+  authMiddleware,
+  param('driverId').isInt().toInt(),
+  query('limit').optional().isInt({ min: 1, max: 100 }).toInt(),
+  query('offset').optional().isInt({ min: 0 }).toInt(),
+  rideController.getDriverHistory
+);
+
+/**
+ * GET /api/rides/:id
+ * Get ride details
+ */
+router.get(
+  '/:id',
+  authMiddleware,
+  param('id').isInt().toInt(),
+  rideController.getRide
 );
 
 /**
@@ -106,32 +135,6 @@ router.put(
   param('id').isInt().toInt(),
   body('reason').optional().isString(),
   rideController.cancelRide
-);
-
-/**
- * GET /api/rides/user/:userId
- * Get rider's ride history
- */
-router.get(
-  '/user/:userId',
-  authMiddleware,
-  param('userId').isInt().toInt(),
-  query('limit').optional().isInt({ min: 1, max: 100 }).toInt(),
-  query('offset').optional().isInt({ min: 0 }).toInt(),
-  rideController.getRiderHistory
-);
-
-/**
- * GET /api/rides/driver/:driverId
- * Get driver's completed rides
- */
-router.get(
-  '/driver/:driverId',
-  authMiddleware,
-  param('driverId').isInt().toInt(),
-  query('limit').optional().isInt({ min: 1, max: 100 }).toInt(),
-  query('offset').optional().isInt({ min: 0 }).toInt(),
-  rideController.getDriverHistory
 );
 
 /**

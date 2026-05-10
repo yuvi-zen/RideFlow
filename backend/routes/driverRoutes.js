@@ -1,6 +1,7 @@
 /**
  * Driver Routes
  * RESTful endpoints for driver management
+ * NOTE: Specific routes MUST be declared before wildcard /:id routes
  */
 
 const express = require('express');
@@ -10,28 +11,6 @@ const { requireAdmin, requireDriver } = require('../middleware/roleMiddleware');
 const driverController = require('../controllers/driverController');
 
 const router = express.Router();
-
-/**
- * GET /api/drivers/:id
- * Get driver profile by ID
- */
-router.get(
-  '/:id',
-  authMiddleware,
-  param('id').isInt().toInt(),
-  driverController.getProfile
-);
-
-/**
- * GET /api/drivers/user/:userId
- * Get driver by user ID
- */
-router.get(
-  '/user/:userId',
-  authMiddleware,
-  param('userId').isInt().toInt(),
-  driverController.getByUserId
-);
 
 /**
  * GET /api/drivers
@@ -46,6 +25,43 @@ router.get(
   query('limit').optional().isInt({ min: 1, max: 100 }).toInt(),
   query('offset').optional().isInt({ min: 0 }).toInt(),
   driverController.getAllDrivers
+);
+
+/**
+ * GET /api/drivers/available
+ * Find available drivers near location
+ * MUST be before /:id
+ */
+router.get(
+  '/available',
+  authMiddleware,
+  query('latitude').isFloat({ min: -90, max: 90 }).toFloat(),
+  query('longitude').isFloat({ min: -180, max: 180 }).toFloat(),
+  query('radius').optional().isInt({ min: 1, max: 100 }).toInt(),
+  driverController.findAvailable
+);
+
+/**
+ * GET /api/drivers/user/:userId
+ * Get driver by user ID
+ * MUST be before /:id
+ */
+router.get(
+  '/user/:userId',
+  authMiddleware,
+  param('userId').isInt().toInt(),
+  driverController.getByUserId
+);
+
+/**
+ * GET /api/drivers/:id
+ * Get driver profile by ID
+ */
+router.get(
+  '/:id',
+  authMiddleware,
+  param('id').isInt().toInt(),
+  driverController.getProfile
 );
 
 /**
@@ -119,19 +135,6 @@ router.get(
   authMiddleware,
   param('id').isInt().toInt(),
   driverController.getRatings
-);
-
-/**
- * GET /api/drivers/available
- * Find available drivers near location
- */
-router.get(
-  '/available',
-  authMiddleware,
-  query('latitude').isFloat({ min: -90, max: 90 }).toFloat(),
-  query('longitude').isFloat({ min: -180, max: 180 }).toFloat(),
-  query('radius').optional().isInt({ min: 1, max: 100 }).toInt(),
-  driverController.findAvailable
 );
 
 module.exports = router;
