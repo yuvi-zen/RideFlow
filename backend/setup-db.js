@@ -65,82 +65,95 @@ async function setupDatabase() {
     const ROUNDS = 10;
     
     const adminHash = await bcrypt.hash('Admin@123', ROUNDS);
-    const riderHash = await bcrypt.hash('Rider@123', ROUNDS);
-    const driverHash = await bcrypt.hash('Driver@123', ROUNDS);
-
-    // --- BULK SEEDING FOR RUBRIC COMPLIANCE ---
-    console.log('Seeding diverse data for reports/views/triggers...');
+    // --- ELDEN RING THEMED SEEDING ---
+    console.log('Seeding 10 Boss Drivers and 10 NPC Riders (Elden Ring Theme)...');
     
-    // Add more Riders
-    await connection.query(
-      `INSERT INTO users (full_name, email, phone_number, password_hash, role, account_status) VALUES 
-      ('Sajid Rider', 'sajid@test.com', '03110000001', ?, 'Rider', 'Active'),
-      ('Fatima Rider', 'fatima@test.com', '03110000002', ?, 'Rider', 'Active'),
-      ('John Doe', 'john@test.com', '03110000003', ?, 'Rider', 'Active')`,
-      [riderHash, riderHash, riderHash]
-    );
+    const bosses = [
+      'Malenia', 'Radahn', 'Morgott', 'Maliketh', 'Godfrey', 
+      'Radagon', 'Rennala', 'Godrick', 'Mohg', 'Rykkard'
+    ];
+    
+    const npcs = [
+      'Ranni', 'Blaidd', 'Alexander', 'Melina', 'Varre', 
+      'Patches', 'Gideon', 'Fia', 'Seluvis', 'Goldmask'
+    ];
 
-    // Add more Drivers
-    await connection.query(
-      `INSERT INTO users (full_name, email, phone_number, password_hash, role, account_status) VALUES 
-      ('Usman Driver', 'usman@test.com', '03220000001', ?, 'Driver', 'Active'),
-      ('Ali Driver', 'ali@test.com', '03220000002', ?, 'Driver', 'Active'),
-      ('Zain LowRated', 'zain@test.com', '03220000003', ?, 'Driver', 'Active')`,
-      [driverHash, driverHash, driverHash]
-    );
+    // Seed Drivers (Bosses)
+    for (const name of bosses) {
+      const username = name.toLowerCase().replace(' ', '');
+      const email = `${username}@elden.com`;
+      const password = `${username}123`;
+      const hash = await bcrypt.hash(password, ROUNDS);
+      
+      const [uResult] = await connection.query(
+        `INSERT INTO users (full_name, email, phone_number, password_hash, role, account_status) 
+         VALUES (?, ?, ?, ?, 'Driver', 'Active')`,
+        [name, email, '03' + Math.floor(100000000 + Math.random() * 900000000), hash]
+      );
+      const userId = uResult.insertId;
 
-    // Register Drivers and Vehicles
-    const [allDrivers] = await connection.query("SELECT id, full_name FROM users WHERE role = 'Driver'");
-    for (const d of allDrivers) {
       const [drResult] = await connection.query(
-        `INSERT INTO drivers (user_id, license_number, cnic, availability_status, verification_status, average_rating) 
-         VALUES (?, ?, ?, 'Online', 'Verified', 0)`,
-        [d.id, 'LIC-' + d.id, 'CNIC-' + d.id]
+        `INSERT INTO drivers (user_id, license_number, cnic, availability_status, verification_status) 
+         VALUES (?, ?, ?, 'Online', 'Verified')`,
+        [userId, 'LIC-' + username.toUpperCase(), 'CNIC-' + userId]
       );
       const drId = drResult.insertId;
-      
+
       await connection.query(
         `INSERT INTO vehicles (driver_id, make, model, year, color, license_plate, vehicle_type, verification_status) 
-         VALUES (?, 'Honda', 'Civic', 2021, 'Black', ?, 'Economy', 'Verified')`,
-        [drId, 'PLATE-' + drId]
+         VALUES (?, 'Spectral', 'Steed', 2024, 'Gold', ?, 'Premium', 'Verified')`,
+        [drId, 'PLATE-' + username.toUpperCase()]
       );
-
     }
 
-    // Seed some Locations
+    // Seed Locations for rides
+    console.log('Seeding locations...');
     await connection.query(
       `INSERT INTO locations (address, city, latitude, longitude) VALUES 
       ('Safa Gold Mall', 'Islamabad', 33.7167, 73.0500),
       ('Dolmen Mall', 'Karachi', 24.8138, 67.0311),
-      ('Emporium Mall', 'Lahore', 31.4676, 74.2662)`
+      ('Emporium Mall', 'Lahore', 31.4676, 74.2662),
+      ('Centaurus Mall', 'Islamabad', 33.7077, 73.0503),
+      ('Lucky One Mall', 'Karachi', 24.9204, 67.0932)`
     );
 
-    // Seed Completed Rides for Revenue Reports
-    const [riders] = await connection.query("SELECT id FROM users WHERE role = 'Rider'");
-    const [drProfiles] = await connection.query("SELECT id, user_id FROM drivers");
-    
-    await connection.query(
-      `INSERT INTO rides (rider_id, driver_id, pickup_location_id, dropoff_location_id, status, final_fare, distance_km) VALUES 
-      (?, ?, 1, 1, 'Completed', 1500, 15.5),
-      (?, ?, 2, 2, 'Completed', 2800, 25.0),
-      (?, ?, 3, 3, 'Completed', 900, 8.2),
-      (?, ?, 1, 1, 'Completed', 2100, 18.0)`,
-      [riders[0].id, drProfiles[0].id, riders[1].id, drProfiles[1].id, riders[2].id, drProfiles[0].id, riders[0].id, drProfiles[1].id]
-    );
-
-    // Get the ride IDs to link ratings
-    const [rideRows] = await connection.query("SELECT id, driver_id FROM rides");
-    
-    // Add ratings linked to rides
-    for (const r of rideRows) {
-      const driver = drProfiles.find(dp => dp.id === r.driver_id);
-      const [user] = await connection.query("SELECT full_name FROM users WHERE id = ?", [driver.user_id]);
-      const score = user[0].full_name.includes('LowRated') ? 2 : 5;
+    // Seed Riders (NPCs)
+    for (const name of npcs) {
+      const username = name.toLowerCase().replace(' ', '');
+      const email = `${username}@elden.com`;
+      const password = `${username}123`;
+      const hash = await bcrypt.hash(password, ROUNDS);
       
       await connection.query(
+        `INSERT INTO users (full_name, email, phone_number, password_hash, role, account_status) 
+         VALUES (?, ?, ?, ?, 'Rider', 'Active')`,
+        [name, email, '03' + Math.floor(100000000 + Math.random() * 900000000), hash]
+      );
+    }
+
+    // Seed random ride history and ratings for analytics
+    const [allRiders] = await connection.query("SELECT id FROM users WHERE role = 'Rider'");
+    const [allDriverUsers] = await connection.query("SELECT id, full_name FROM users WHERE role = 'Driver'");
+    const [allDriverProfiles] = await connection.query("SELECT id, user_id FROM drivers");
+
+    console.log('Generating random ride history and ratings...');
+    for (let i = 0; i < 20; i++) {
+      const rider = allRiders[Math.floor(Math.random() * allRiders.length)];
+      const driverProfile = allDriverProfiles[Math.floor(Math.random() * allDriverProfiles.length)];
+      const driverUser = allDriverUsers.find(u => u.id === driverProfile.user_id);
+      
+      const [rideResult] = await connection.query(
+        `INSERT INTO rides (rider_id, driver_id, pickup_location_id, dropoff_location_id, status, final_fare, distance_km) 
+         VALUES (?, ?, 1, 2, 'Completed', ?, ?)`,
+        [rider.id, driverProfile.id, Math.floor(Math.random() * 2000) + 500, (Math.random() * 20).toFixed(1)]
+      );
+
+      // Random ratings (High for favorites, low for others)
+      const score = (driverUser.full_name === 'Malenia' || driverUser.full_name === 'Radahn') ? 5 : Math.floor(Math.random() * 4) + 2;
+      await connection.query(
         `INSERT INTO ratings (ride_id, rated_user_id, rated_by, score, comment) 
-         VALUES (?, ?, 'Rider', ?, 'Auto-seeded rating')`,
-        [r.id, driver.user_id, score]
+         VALUES (?, ?, 'Rider', ?, 'Great journey through the Lands Between!')`,
+        [rideResult.insertId, driverUser.id, score]
       );
     }
     console.log('=== Database Setup Complete ===\n');

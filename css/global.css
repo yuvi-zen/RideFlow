@@ -1,103 +1,67 @@
-/* ==============================================
-   RIDEFLOW - GLOBAL STYLES & CSS VARIABLES
-   ============================================== */
-
-/* ==============================================
-   RIDEFLOW - GLOBAL STYLES & CSS VARIABLES
-   ============================================== */
-
 :root {
-  /* Brand - Blue */
-  --rf-primary: #0066cc;
-  --rf-primary-mid: #0052a3;
-  --rf-accent: #f59e0b;
-  --rf-accent-glow: rgba(245, 158, 11, 0.1);
-  --rf-accent-dark: #d97706;
+  /* Color System - Neon Cyber Premium */
+  --color-bg-deep: #050508;
+  --color-bg-card: rgba(18, 18, 26, 0.75);
+  --color-bg-elevated: #16161e;
+  
+  --color-primary: #ff007a; /* Cyber Pink */
+  --color-secondary: #00d4ff; /* Electric Blue */
+  --color-accent: #bc13fe; /* Purple */
+  
+  --color-success: #00ffa3;
+  --color-warning: #ffcc00;
+  --color-danger: #ff4d4d;
+  
+  --color-text-white: #ffffff;
+  --color-text-muted: #a0a0b0;
+  --color-text-dim: #606070;
+  
+  --color-border: rgba(255, 255, 255, 0.1);
+  --color-border-glow: rgba(0, 212, 255, 0.2);
+  
+  --gradient-pink: linear-gradient(135deg, #ff007a, #8e00ff);
+  --gradient-blue: linear-gradient(135deg, #00d4ff, #0052ff);
+  --gradient-dark: linear-gradient(180deg, #12121a 0%, #050508 100%);
+  
+  --glass-bg: rgba(255, 255, 255, 0.03);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-blur: blur(15px);
+  
+  --shadow-neon-pink: 0 0 15px rgba(255, 0, 122, 0.25);
+  --shadow-neon-blue: 0 0 15px rgba(0, 212, 255, 0.25);
+  
+  --radius-xl: 20px;
+  --radius-lg: 16px;
+  --radius-md: 12px;
+  
+  --transition-premium: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
 
-  /* Rider theme - Blue */
-  --rf-rider-primary: #0066cc;
-  --rf-rider-light: #e6f0ff;
-  --rf-rider-glow: rgba(0, 102, 204, 0.1);
+  /* Legacy compatibility overrides */
+  --rf-bg: var(--color-bg-deep);
+  --rf-surface: var(--color-bg-card);
+  --rf-text: var(--color-text-white);
+  --rf-border: var(--color-border);
+  --color-bg: var(--color-bg-deep);
+}
 
-  /* Driver theme - Green/Blue */
-  --rf-driver-primary: #10b981;
-  --rf-driver-light: #ecfdf5;
-  --rf-driver-glow: rgba(16, 185, 129, 0.1);
-
-  /* Semantic */
-  --rf-success: #10b981;
-  --rf-warning: #f59e0b;
-  --rf-danger: #ef4444;
-  --rf-info: #3b82f6;
-
-  /* Neutrals - LIGHT MODE */
-  --rf-bg: #f8fafc;
-  --rf-surface: #ffffff;
-  --rf-surface-2: #f1f5f9;
-  --rf-border: #e2e8f0;
-  --rf-text: #1e293b;
-  --rf-text-muted: #64748b;
-  --rf-shadow-sm: 0 1px 3px rgba(0,0,0,0.1);
-  --rf-shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1);
-  --rf-shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1);
-
-  /* Map specific */
-  --map-height: 420px;
-  --map-border-radius: 20px;
-
-  /* Legacy compatibility - map old variables to new ones */
-  --color-primary: var(--rf-primary);
-  --color-primary-dark: var(--rf-primary-mid);
-  --color-primary-light: rgba(0, 255, 255, 0.1);
-  --color-secondary: var(--rf-accent);
-  --color-secondary-dark: var(--rf-accent-dark);
-  --color-secondary-light: rgba(255, 20, 147, 0.15);
-  --color-danger: var(--rf-danger);
-  --color-danger-light: rgba(255, 71, 87, 0.15);
-  --color-warning: var(--rf-warning);
-  --color-warning-light: rgba(255, 176, 32, 0.15);
-  --color-success: var(--rf-success);
-  --color-success-light: rgba(0, 200, 150, 0.15);
-  --color-dark: var(--rf-text);
-  --color-dark-light: var(--rf-text-muted);
-  --color-light: var(--rf-bg);
-  --color-light-2: var(--rf-surface-2);
-  --color-light-3: var(--rf-border);
-  --color-white: var(--rf-surface);
-  --color-border: var(--rf-border);
-  --color-text: var(--rf-text);
-  --color-text-muted: var(--rf-text-muted);
-  --color-bg-secondary: var(--rf-bg);
-
-  /* Status Colors */
-  --status-pending: var(--rf-warning);
-  --status-requested: var(--rf-info);
-  --status-accepted: var(--rf-success);
-  --status-in-progress: var(--rf-rider-primary);
-  --status-completed: var(--rf-success);
-  --status-cancelled: var(--rf-danger);
-  --status-verified: var(--rf-success);
-  --status-rejected: var(--rf-danger);
-  --status-suspended: var(--rf-warning);
-
-  /* Spacing */
-  --space-xs: 4px;
-  --space-sm: 8px;
-  --space-md: 12px;
-  --space-lg: 16px;
-  --space-xl: 20px;
-  --space-2xl: 24px;
-  --space-3xl: 32px;
-  --space-4xl: 40px;
-
-  /* Border Radius */
-  --radius-sm: 4px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
-  --radius-xl: 16px;
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
 body {
+  font-family: 'Outfit', 'Inter', system-ui, -apple-system, sans-serif;
+  background-color: var(--color-bg-deep);
+  color: var(--color-text-white);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+  background-image: 
+    radial-gradient(circle at 0% 0%, rgba(255, 0, 122, 0.08) 0%, transparent 50%),
+    radial-gradient(circle at 100% 100%, rgba(0, 212, 255, 0.08) 0%, transparent 50%);
+  background-attachment: fixed;
+}
     margin: 0;
     padding: 0;
     font-family: var(--font-family-base);
@@ -136,54 +100,81 @@ body {
     transition: all var(--transition-fast);
   }
 
-  /* Typography Reset */
-  h1,
-  h2,
-  h3,
-  h4,
-  h5,
-  h6 {
-    margin-top: 0;
-    color: var(--rf-text);
-  }
+/* Layout Components */
+.sidebar {
+  background: var(--color-bg-elevated);
+  border-right: 1px solid var(--color-border);
+  box-shadow: 10px 0 30px rgba(0, 0, 0, 0.5);
+}
 
-  p {
-    margin-top: 0;
-    color: var(--rf-text-muted);
-  }
+.card {
+  background: var(--color-bg-card);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  transition: var(--transition-premium);
+  position: relative;
+  overflow: hidden;
+  color: var(--color-text-white);
+}
 
-  /* Typography */
-  --font-family-base: 'Inter',
-  -apple-system,
-  BlinkMacSystemFont,
-  'Segoe UI',
-  Roboto,
-  'Helvetica Neue',
-  Arial,
-  sans-serif;
-  --font-size-xs: 12px;
-  --font-size-sm: 14px;
-  --font-size-base: 16px;
-  --font-size-lg: 18px;
-  --font-size-xl: 20px;
-  --font-size-2xl: 24px;
-  --font-size-3xl: 32px;
+.card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; height: 2px;
+  background: var(--gradient-blue);
+  opacity: 0;
+  transition: var(--transition-premium);
+}
 
-  --font-weight-normal: 400;
-  --font-weight-medium: 500;
-  --font-weight-semibold: 600;
-  --font-weight-bold: 700;
+.card:hover::before {
+  opacity: 1;
+}
 
-  /* Line Heights */
-  --line-height-tight: 1.2;
-  --line-height-normal: 1.5;
-  --line-height-relaxed: 1.75;
+body[data-role="Rider"] .card::before {
+  background: var(--gradient-pink);
+}
 
-  /* Shadows */
-  --shadow-sm: var(--rf-shadow-sm);
-  --shadow-md: var(--rf-shadow-md);
-  --shadow-lg: var(--rf-shadow-lg);
-  --shadow-xl: var(--rf-shadow-xl);
+/* Buttons */
+.btn {
+  border-radius: var(--radius-md);
+  padding: 12px 24px;
+  font-weight: 600;
+  transition: var(--transition-premium);
+  cursor: pointer;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-size: 13px;
+  text-decoration: none;
+}
+
+.btn-primary {
+  background: var(--gradient-pink);
+  color: white;
+  box-shadow: var(--shadow-neon-pink);
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 25px rgba(255, 0, 122, 0.4);
+}
+
+.btn-secondary {
+  background: var(--gradient-blue);
+  color: white;
+  box-shadow: var(--shadow-neon-blue);
+}
+
+.btn-secondary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 25px rgba(0, 212, 255, 0.4);
+}
 
   /* Transitions */
   --transition-fast: 150ms ease-in-out;
@@ -294,10 +285,12 @@ body {
 }
 
 .book-ride-form-panel {
-  background: var(--rf-surface);
+  background: var(--color-bg-card);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
   border-radius: 20px;
   padding: 24px;
-  box-shadow: var(--rf-shadow-lg);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
 }
 
 .location-inputs {
@@ -327,16 +320,19 @@ body {
 .location-input {
   flex: 1;
   padding: 12px 16px;
-  border: 2px solid var(--rf-border);
+  border: 1px solid var(--color-border);
   border-radius: 12px;
   font-size: 16px;
-  transition: all 200ms ease;
+  background: rgba(255, 255, 255, 0.03);
+  color: white;
+  transition: var(--transition-premium);
 }
 
 .location-input:focus {
   outline: none;
-  border-color: var(--rf-rider-primary);
-  box-shadow: 0 0 0 3px var(--rf-rider-glow);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 15px rgba(255, 0, 122, 0.2);
+  background: rgba(255, 255, 255, 0.05);
 }
 
 .location-btn {
