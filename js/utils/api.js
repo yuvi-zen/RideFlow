@@ -264,7 +264,7 @@ const paymentAPI = {
 
 const adminAPI = {
     async getDashboardStats() {
-        return apiClient.get('/reports/platform-health');
+        return apiClient.get('/reports/health');
     },
 
     async getUsers() {
