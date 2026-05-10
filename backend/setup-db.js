@@ -65,6 +65,14 @@ async function setupDatabase() {
     const ROUNDS = 10;
     
     const adminHash = await bcrypt.hash('Admin@123', ROUNDS);
+
+    // Add Admin user
+    await connection.query(
+      `INSERT INTO users (full_name, email, phone_number, password_hash, role, account_status) 
+       VALUES ('Ahmed Admin', 'admin@rideflow.com', '03001234567', ?, 'Admin', 'Active')`,
+      [adminHash]
+    );
+
     // --- ELDEN RING THEMED SEEDING ---
     console.log('Seeding 10 Boss Drivers and 10 NPC Riders (Elden Ring Theme)...');
     
