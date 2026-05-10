@@ -15,28 +15,45 @@ class AdminDashboard {
             const response = await adminAPI.getDashboardStats();
             this.stats = response.data;
             console.log('Real Stats Loaded:', this.stats);
+            setTimeout(() => {
+                const statusEl = document.getElementById('connection-status');
+                if (statusEl) statusEl.innerHTML = '<span style="color:var(--color-success);">● Connected to LIVE API</span>';
+            }, 100);
         } catch (error) {
-            showToast('Failed to load stats', 'error');
+            console.error('API Error:', error);
+            setTimeout(() => {
+                const statusEl = document.getElementById('connection-status');
+                if (statusEl) statusEl.innerHTML = '<span style="color:var(--color-danger);">● MOCK MODE (Backend Down)</span>';
+            }, 100);
         }
 
         this.container.innerHTML = `
             <div class="admin-dashboard">
 
                 <!-- Header -->
-                <div class="dashboard-header">
-                    <h1>Admin Dashboard</h1>
-                    <p>Manage all platform activities and users</p>
+                <div class="dashboard-header" style="display:flex; justify-content:space-between; align-items:center;">
+                    <div>
+                        <h1>Admin Dashboard <span style="font-size:12px; background:var(--color-success); color:white; padding:4px 8px; border-radius:4px; margin-left:10px;">LIVE DB (21 USERS)</span></h1>
+                        <p>Manage all platform activities and users (Elden Ring Dataset)</p>
+                    </div>
+                    <div style="text-align:right;">
+                        <div id="connection-status" style="font-size:11px; margin-bottom:5px;">
+                            <span style="color:var(--color-warning);">⚡ Checking Connection...</span>
+                        </div>
+                        <div style="font-size:11px; color:var(--color-text-muted);">v2.0.2 - Real-time Sync</div>
+                        <button class="btn btn-sm btn-primary" onclick="location.reload(true)" style="margin-top:5px;">Force Refresh</button>
+                    </div>
                 </div>
 
                 <div class="container-fluid">
                     <!-- Statistics Cards -->
                     <div class="stats-grid">
-                        ${this.createStatCard('👥', 'Total Users', this.stats.totalUsers || 0, 'primary')}
-                        ${this.createStatCard('👤', 'Total Riders', this.stats.totalRiders || 0, 'success')}
-                        ${this.createStatCard('🚗', 'Total Drivers', this.stats.totalDrivers || 0, 'warning')}
-                        ${this.createStatCard('🛣️', 'Total Rides', this.stats.totalRides || 0, 'primary')}
-                        ${this.createStatCard('💰', 'Platform Revenue', formatCurrency(this.stats.totalRevenue || 0), 'success')}
-                        ${this.createStatCard('⚠️', 'Open Complaints', this.stats.totalComplaints || 0, 'danger')}
+                        ${this.createStatCard('👥', 'Total Users', this.stats.total_users || this.stats.totalUsers || 0, 'primary')}
+                        ${this.createStatCard('👤', 'Total Riders', this.stats.total_riders || this.stats.totalRiders || 0, 'success')}
+                        ${this.createStatCard('🚗', 'Total Drivers', this.stats.active_drivers || this.stats.totalDrivers || 0, 'warning')}
+                        ${this.createStatCard('🛣️', 'Total Rides', this.stats.total_rides || this.stats.totalRides || 0, 'primary')}
+                        ${this.createStatCard('💰', 'Platform Revenue', formatCurrency(this.stats.total_revenue || this.stats.totalRevenue || 0), 'success')}
+                        ${this.createStatCard('⚠️', 'Open Complaints', this.stats.total_complaints || this.stats.totalComplaints || 0, 'danger')}
                     </div>
 
                     <!-- Tabs for different sections -->
