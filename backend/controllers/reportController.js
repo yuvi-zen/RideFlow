@@ -136,7 +136,7 @@ async function getPlatformHealth(req, res, next) {
     const [users] = await conn.query(`SELECT COUNT(*) as count FROM users`);
     const [drivers] = await conn.query(`SELECT COUNT(*) as count FROM drivers WHERE verification_status = 'Verified'`);
     const [activeRides] = await conn.query(`SELECT COUNT(*) as count FROM ActiveRidesView`);
-    const [revenue] = await conn.query(`SELECT SUM(amount) as total FROM payments WHERE status = 'Paid'`);
+    const [revenue] = await conn.query(`SELECT SUM(amount) as total FROM payments WHERE payment_status = 'Paid'`);
     conn.release();
 
     return successResponse(res, {
