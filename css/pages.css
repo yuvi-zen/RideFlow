@@ -2286,3 +2286,137 @@
         grid-template-columns: 1fr;
     }
 }
+
+/* ==============================================
+   DRIVER EARNINGS TAB
+   ============================================== */
+
+.earnings-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.earnings-chart-section,
+.trips-table-section,
+.payout-card {
+    background-color: rgba(57, 255, 20, 0.08); /* Neon green subtle background */
+    border: 1px solid rgba(57, 255, 20, 0.4); /* Neon green border */
+    border-radius: 12px;
+    padding: 24px;
+    color: var(--rf-text);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.earnings-chart-section h3,
+.trips-table-section h3,
+.payout-card h3 {
+    color: #39ff14; /* Neon green heading */
+    margin-top: 0;
+    margin-bottom: 20px;
+}
+
+.summary-cards {
+    display: flex;
+    gap: 20px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+}
+
+.summary-card {
+    flex: 1;
+    min-width: 200px;
+    background-color: rgba(57, 255, 20, 0.08);
+    border: 1px solid rgba(57, 255, 20, 0.4);
+    border-radius: 12px;
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    transition: transform 0.2s;
+}
+
+.summary-card:hover {
+    transform: translateY(-5px);
+}
+
+.summary-icon {
+    font-size: 36px;
+}
+
+.summary-value {
+    font-size: 28px;
+    font-weight: 700;
+    color: #39ff14; /* Neon green text for value */
+}
+
+.summary-label {
+    font-size: 14px;
+    color: var(--rf-text-muted);
+}
+
+.trips-table .table-header {
+    display: grid;
+    grid-template-columns: 1fr 2fr 1fr 1fr 1fr;
+    font-weight: 600;
+    padding: 12px 0;
+    border-bottom: 1px solid rgba(57, 255, 20, 0.4);
+    color: #39ff14;
+}
+
+.trips-table .table-row {
+    display: grid;
+    grid-template-columns: 1fr 2fr 1fr 1fr 1fr;
+    padding: 12px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.trips-table .net-earning {
+    color: #39ff14;
+    font-weight: 600;
+}
+
+.period-selector {
+    display: flex;
+    gap: 12px;
+}
+
+.period-btn {
+    background: transparent;
+    border: 1px solid rgba(57, 255, 20, 0.5);
+    color: var(--rf-text);
+    padding: 8px 16px;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.period-btn.active, .period-btn:hover {
+    background: rgba(57, 255, 20, 0.2);
+    color: #39ff14;
+    border-color: #39ff14;
+}
+
+.payout-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.balance-amount {
+    font-size: 24px;
+    font-weight: bold;
+    color: #39ff14;
+    margin-left: 10px;
+}
+
+.commission-info {
+    margin-top: 16px;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    font-size: 14px;
+    color: var(--rf-text-muted);
+}
