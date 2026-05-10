@@ -33,11 +33,6 @@ class AuthPages {
 
                         <button type="submit" class="btn btn-primary btn-block" style="margin-top: 16px;">Sign In</button>
                     </form>
-                    <div class="auth-demo-credentials">
-                        <p><strong>Driver demo:</strong> driver@rideflow.com / Driver@123</p>
-                        <p><strong>Rider demo:</strong> rider@rideflow.com / Rider@123</p>
-                        <p><strong>Admin demo:</strong> admin@rideflow.com / Admin@123</p>
-                    </div>
                     <div class="auth-footer">
                         Don't have an account? <a href="#register">Sign up here</a>
                     </div>
