@@ -471,7 +471,11 @@ class DriverDashboard {
     }
 
     renderActiveTrip(container) {
-        const currentRide = this.allTrips.find(r => r.driver_id === this.driver.id && ['Accepted', 'Driver En Route', 'In Progress'].includes(r.status));
+        // currentSimRideId is set during startAutomatedTripSimulation so we always show active trip even before DB status syncs
+        const currentRide = this.allTrips.find(r =>
+            r.driver_id === this.driver.id && ['Accepted', 'Driver En Route', 'In Progress'].includes(r.status)
+        ) || (this.currentSimRideId ? this.allTrips.find(r => r.id === this.currentSimRideId) : null);
+
         if (!currentRide) {
             container.innerHTML = `
                 <div class="no-active-trip">
@@ -1116,6 +1120,7 @@ class DriverDashboard {
 
     startAutomatedTripSimulation(rideId) {
         let step = 0;
+        this.currentSimRideId = rideId; // track so renderActiveTrip won't show 'no trip'
         showToast('Trip automated simulation started...', 'info');
         
         const simInterval = setInterval(async () => {
@@ -1163,6 +1168,7 @@ class DriverDashboard {
                 console.error('Simulation error:', error);
             }
         }, 15000); // 15 second intervals
+        this._simInterval = simInterval;
     }
 
     renderRideRequests(container) {
@@ -2039,9 +2045,9 @@ class DriverDashboard {
             };
         }
 
-        Modal.alert({
+        Modal.open({
             title: 'Complete Trip',
-            message: `
+            content: `
                 <div class="trip-completion-modal">
                     <div class="trip-summary">
                         <h4>Trip Summary</h4>
@@ -2060,43 +2066,41 @@ class DriverDashboard {
 
                     <div class="rating-section">
                         <h4>Rate Your Rider</h4>
-                        <div class="stars-container">
-                            ${[1,2,3,4,5].map(star => `<span class="star" data-rating="${star}">⭐</span>`).join('')}
+                        <div class="stars-container" id="driver-modal-stars">
+                            ${[1,2,3,4,5].map(star => `<span class="star" data-rating="${star}" style="font-size:32px;cursor:pointer;color:#d1d5db;">&#9733;</span>`).join('')}
                         </div>
-                        <textarea id="rider-comment" placeholder="Optional comment..." rows="3"></textarea>
+                        <textarea id="rider-comment" placeholder="Optional comment..." rows="3" style="margin-top:8px;width:100%;padding:8px;border-radius:6px;border:1px solid #e2e8f0;"></textarea>
+                    </div>
+
+                    <div style="display:flex;gap:12px;margin-top:20px;">
+                        <button id="driver-complete-done-btn" class="btn btn-primary" style="flex:1;">Done</button>
                     </div>
                 </div>
             `,
             onOpen: () => {
                 // Setup star rating
-                const stars = document.querySelectorAll('.stars-container .star');
+                const stars = document.querySelectorAll('#driver-modal-stars .star');
                 stars.forEach(star => {
                     star.addEventListener('click', () => {
                         const rating = parseInt(star.dataset.rating);
                         stars.forEach((s, i) => {
-                            s.classList.toggle('active', i < rating);
+                            s.style.color = i < rating ? '#f59e0b' : '#d1d5db';
                         });
                     });
                 });
-            },
-            buttons: [
-                { text: 'Done', class: 'btn-primary', action: () => {
-                    const rating = document.querySelectorAll('.stars-container .star.active').length;
-                    const comment = document.getElementById('rider-comment').value;
 
-                    showToast('Trip completed! Earnings updated.', 'success');
-                    Modal.close();
-
-                    // Clear trip interval
-                    if (this.tripInterval) {
-                        clearInterval(this.tripInterval);
-                        this.tripInterval = null;
-                    }
-
-                    // Return to home
-                    setTimeout(() => this.renderSection('overview'), 1000);
-                }}
-            ]
+                // Done button
+                const doneBtn = document.getElementById('driver-complete-done-btn');
+                if (doneBtn) {
+                    doneBtn.addEventListener('click', () => {
+                        showToast('Trip completed! Earnings updated.', 'success');
+                        Modal.close();
+                        this.currentSimRideId = null;
+                        if (this._simInterval) { clearInterval(this._simInterval); this._simInterval = null; }
+                        setTimeout(() => this.renderSection('overview'), 1000);
+                    });
+                }
+            }
         });
     }
 

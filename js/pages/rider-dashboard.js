@@ -224,10 +224,6 @@ class RiderDashboard {
         const recent3 = completedRides.slice(0, 3);
 
         container.innerHTML = `
-            <!-- Demo Banner -->
-            <div style="background:linear-gradient(135deg, var(--rf-primary), var(--rf-primary-mid));color:#000;padding:10px 20px;text-align:center;font-size:13px;font-weight:700;border-radius:10px;margin-bottom:16px;box-shadow: 0 4px 15px rgba(0,255,255,0.3);">
-                ✨ Demo Mode — Simulated rides & drivers. No real transactions.
-            </div>
 
             <div class="dashboard-header">
                 <h1>Welcome, ${this.currentUser.full_name}</h1>
@@ -3295,46 +3291,78 @@ class RiderDashboard {
         var self = this;
         var container = document.getElementById('main-content');
 
-        container.innerHTML = `
-            <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:80vh;padding:24px;background:#f8fafc;">
-                <!-- Payment Summary -->
-                <div style="background:white;border-radius:20px;padding:28px;width:100%;max-width:400px;box-shadow:0 4px 20px rgba(0,0,0,0.08);margin-bottom:20px;text-align:center;">
-                    <div style="font-size:48px;margin-bottom:12px;">✅</div>
-                    <h2 style="font-size:22px;font-weight:700;color:#1e293b;margin-bottom:4px;">Ride Completed!</h2>
-                    <p style="color:#64748b;margin-bottom:20px;">Thank you for riding with RideFlow</p>
+        // Show a beautiful inline popup matching driver style
+        var fare = ride.fare || 0;
+        var distance = ride.distance || 0;
+        var rideId = ride.id || ride.server_id;
 
-                    <div style="border-top:1px solid #e2e8f0;padding-top:16px;margin-bottom:16px;">
-                        <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
-                            <span style="color:#64748b;">Base fare</span>
-                            <span style="font-weight:600;">PKR 80</span>
+        Modal.alert({
+            title: '✅ Ride Completed!',
+            message: `
+                <div class="trip-completion-modal">
+                    <div class="trip-summary">
+                        <h4>Trip Summary</h4>
+                        <div class="summary-row"><span>Distance:</span><span>${distance} km</span></div>
+                        <div class="summary-row"><span>Total Fare:</span><span>PKR ${fare}</span></div>
+                        <div class="summary-row total"><span style="color:#2563eb;">Thank you for riding!</span></div>
+                    </div>
+
+                    <div class="rating-section" style="margin-top:16px;">
+                        <h4>Rate Your Driver</h4>
+                        <div class="stars-container" id="rider-modal-stars">
+                            ${[1,2,3,4,5].map(s => `<span class="star" data-rating="${s}" style="font-size:32px;cursor:pointer;color:#d1d5db;">★</span>`).join('')}
                         </div>
-                        <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
-                            <span style="color:#64748b;">Distance (${ride.distance || 0} km)</span>
-                            <span style="font-weight:600;">PKR ${Math.max(0, (ride.fare || 0) - 80)}</span>
-                        </div>
-                        <div style="display:flex;justify-content:space-between;border-top:1px solid #e2e8f0;padding-top:8px;">
-                            <span style="font-weight:700;font-size:18px;">Total</span>
-                            <span style="font-weight:700;font-size:22px;color:#2563eb;">PKR ${ride.fare || 0}</span>
-                        </div>
+                        <textarea id="rider-driver-comment" placeholder="Optional comment about your driver..." rows="3" style="margin-top:12px;width:100%;padding:8px;border-radius:6px;border:1px solid #e2e8f0;"></textarea>
                     </div>
                 </div>
+            `,
+            onOpen: () => {
+                const stars = document.querySelectorAll('#rider-modal-stars .star');
+                stars.forEach(star => {
+                    star.addEventListener('click', () => {
+                        const rating = parseInt(star.dataset.rating);
+                        stars.forEach((s, i) => {
+                            s.style.color = i < rating ? '#f59e0b' : '#d1d5db';
+                        });
+                        star.dataset.selected = rating;
+                        document.querySelector('#rider-modal-stars .star[data-rating]').__selectedRating = rating;
+                    });
+                });
+            },
+            buttons: [
+                { text: 'Skip', class: 'btn-secondary', action: () => {
+                    window.RideState.clearRide();
+                    Modal.close();
+                    setTimeout(() => self.renderSection('overview'), 500);
+                }},
+                { text: 'Submit Rating', class: 'btn-primary', action: async () => {
+                    const activeStars = document.querySelectorAll('#rider-modal-stars .star').length;
+                    const selectedStar = [...document.querySelectorAll('#rider-modal-stars .star')].find(s => s.style.color === 'rgb(245, 158, 11)');
+                    const rating = selectedStar ? parseInt(selectedStar.dataset.rating) : 0;
+                    const comment = document.getElementById('rider-driver-comment')?.value || '';
 
-                <!-- Rating -->
-                <div style="background:white;border-radius:20px;padding:28px;width:100%;max-width:400px;box-shadow:0 4px 20px rgba(0,0,0,0.08);text-align:center;">
-                    <h3 style="font-weight:700;margin-bottom:16px;">Rate your driver</h3>
-                    <div id="rider-rating-stars" style="display:flex;justify-content:center;gap:8px;margin-bottom:16px;">
-                        <span class="rider-star" data-val="1" style="font-size:36px;cursor:pointer;color:#d1d5db;">★</span>
-                        <span class="rider-star" data-val="2" style="font-size:36px;cursor:pointer;color:#d1d5db;">★</span>
-                        <span class="rider-star" data-val="3" style="font-size:36px;cursor:pointer;color:#d1d5db;">★</span>
-                        <span class="rider-star" data-val="4" style="font-size:36px;cursor:pointer;color:#d1d5db;">★</span>
-                        <span class="rider-star" data-val="5" style="font-size:36px;cursor:pointer;color:#d1d5db;">★</span>
-                    </div>
-                    <button id="rider-submit-rating-btn" style="padding:12px 40px;background:#2563eb;color:white;border:none;border-radius:30px;font-weight:700;font-size:16px;cursor:pointer;">Submit</button>
-                </div>
-            </div>
-        `;
+                    if (rating === 0) {
+                        showToast('Please select a star rating first', 'warning');
+                        return false; // Keep modal open
+                    }
 
-        showToast('✅ Ride completed. Total: PKR ' + (ride.fare || 0), 'success');
+                    try {
+                        if (rideId && !isNaN(parseInt(rideId))) {
+                            await riderAPI.rateRide(rideId, { rating, comment });
+                        }
+                        showToast('Rating submitted! Thank you ⭐', 'success');
+                    } catch(e) {
+                        console.error('Rating error:', e);
+                    }
+
+                    window.RideState.clearRide();
+                    Modal.close();
+                    setTimeout(() => self.renderSection('overview'), 500);
+                }}
+            ]
+        });
+
+        showToast('✅ Ride completed! Total: PKR ' + fare, 'success');
 
         // Star rating interaction
         var selectedRating = 0;
