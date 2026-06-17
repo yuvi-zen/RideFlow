@@ -3350,17 +3350,29 @@ class RiderDashboard {
 
         var submitBtn = document.getElementById('rider-submit-rating-btn');
         if (submitBtn) {
-            submitBtn.addEventListener('click', function () {
+            submitBtn.addEventListener('click', async function () {
                 if (selectedRating === 0) {
                     showToast('Please select a rating', 'warning');
                     return;
                 }
-                showToast('Thank you for rating! ★'.repeat(selectedRating), 'success');
-                window.RideState.clearRide();
-                // Reset to home after 2 seconds
-                setTimeout(function () {
-                    self.renderSection('overview');
-                }, 2000);
+                try {
+                    // If it's a real ride from the database, submit it
+                    if (ride.id && !isNaN(parseInt(ride.id))) {
+                        await riderAPI.rateRide(ride.id, {
+                            rating: selectedRating,
+                            comment: ''
+                        });
+                    }
+                    showToast('Thank you for rating! ★'.repeat(selectedRating), 'success');
+                    window.RideState.clearRide();
+                    // Reset to home after 2 seconds
+                    setTimeout(function () {
+                        self.renderSection('overview');
+                    }, 2000);
+                } catch (e) {
+                    console.error('Failed to submit rating:', e);
+                    showToast('Failed to submit rating. Please try again.', 'error');
+                }
             });
         }
     }
