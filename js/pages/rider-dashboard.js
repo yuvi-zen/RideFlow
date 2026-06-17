@@ -3456,3 +3456,4 @@ class RiderDashboard {
 }
 
 const riderDash = new RiderDashboard();
+window.riderDash = riderDash;

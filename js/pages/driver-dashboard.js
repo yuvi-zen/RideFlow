@@ -2486,6 +2486,7 @@ class DriverDashboard {
 }
 
 const driverDash = new DriverDashboard();
+window.driverDash = driverDash;
 
 // === SHARED DRIVER UTILITIES ===
 

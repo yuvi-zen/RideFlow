@@ -930,3 +930,4 @@ class AdminDashboard {
 }
 
 const adminDash = new AdminDashboard();
+window.adminDash = adminDash;

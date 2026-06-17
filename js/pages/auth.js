@@ -261,3 +261,4 @@ class AuthPages {
 }
 
 const authPages = new AuthPages();
+window.authPages = authPages;
