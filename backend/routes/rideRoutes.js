@@ -21,7 +21,7 @@ router.post(
   authMiddleware,
   body('pickup_location_id').isInt(),
   body('dropoff_location_id').isInt(),
-  body('ride_type').optional().isIn(['Regular', 'Premium', 'Shared', 'Economy']),
+  body('ride_type').optional().isIn(['Regular', 'Premium', 'Shared', 'Economy', 'Bike', 'Car', 'Luxury', 'Van']),
   body('scheduled_time').optional().isISO8601(),
   rideController.requestRide
 );
@@ -34,7 +34,7 @@ router.get(
   '/',
   authMiddleware,
   query('status').optional().isIn(['Requested', 'Accepted', 'Started', 'Completed', 'Cancelled']),
-  query('ride_type').optional().isIn(['Regular', 'Premium', 'Shared']),
+  query('ride_type').optional().isIn(['Regular', 'Premium', 'Shared', 'Economy', 'Bike', 'Car', 'Luxury', 'Van']),
   query('limit').optional().isInt({ min: 1, max: 100 }).toInt(),
   query('offset').optional().isInt({ min: 0 }).toInt(),
   rideController.listRides
