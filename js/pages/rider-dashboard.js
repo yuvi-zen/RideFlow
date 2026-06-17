@@ -484,7 +484,7 @@ class RiderDashboard {
 
         const pickupId = parseInt(pickupSel?.value);
         const dropoffId = parseInt(dropoffSel?.value);
-        const rideType = rideTypeEl?.value || 'Economy';
+        const rideType = rideTypeEl?.value || 'Regular';
 
         if (!pickupId || !dropoffId || pickupId === dropoffId) {
             showToast('Please select valid pickup and drop-off locations.', 'warning');

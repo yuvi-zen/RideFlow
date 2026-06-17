@@ -21,7 +21,7 @@ router.post(
   authMiddleware,
   body('pickup_location_id').isInt(),
   body('dropoff_location_id').isInt(),
-  body('ride_type').optional().isIn(['Regular', 'Premium', 'Shared']),
+  body('ride_type').optional().isIn(['Regular', 'Premium', 'Shared', 'Economy']),
   body('scheduled_time').optional().isISO8601(),
   rideController.requestRide
 );
