@@ -251,18 +251,22 @@ function navigateTo(pageOrHash, section = '') {
 
 // Check if user is authenticated
 function isAuthenticated() {
-    return !!localStorage.getItem('authToken');
+    return !!sessionStorage.getItem('rideflow_authToken');
 }
 
 // Get current user role
 function getCurrentUserRole() {
-    const user = JSON.parse(localStorage.getItem('rideflow_currentUser') || 'null') || {};
-    return user.role;
+    try {
+        const user = JSON.parse(sessionStorage.getItem('rideflow_currentUser') || 'null') || {};
+        return user.role;
+    } catch { return null; }
 }
 
 // Get current user
 function getCurrentUser() {
-    return JSON.parse(localStorage.getItem('rideflow_currentUser') || 'null') || {};
+    try {
+        return JSON.parse(sessionStorage.getItem('rideflow_currentUser') || 'null') || {};
+    } catch { return {}; }
 }
 
 // Check if current user is admin

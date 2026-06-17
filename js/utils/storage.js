@@ -80,36 +80,39 @@ class StorageManager {
 // Create singleton instance
 const storage = new StorageManager('rideflow_');
 
-// Authentication storage
+// Authentication storage — uses sessionStorage so each tab has its own session
 const authStorage = {
     setAuthToken(token) {
-        storage.setItem('authToken', token);
+        sessionStorage.setItem('rideflow_authToken', token);
     },
 
     getAuthToken() {
-        return storage.getItem('authToken');
+        return sessionStorage.getItem('rideflow_authToken') || null;
     },
 
     removeAuthToken() {
-        storage.removeItem('authToken');
+        sessionStorage.removeItem('rideflow_authToken');
     },
 
     setCurrentUser(user) {
-        storage.setItem('currentUser', user);
+        sessionStorage.setItem('rideflow_currentUser', JSON.stringify(user));
     },
 
     getCurrentUser() {
-        return storage.getItem('currentUser');
+        try {
+            const item = sessionStorage.getItem('rideflow_currentUser');
+            return item ? JSON.parse(item) : null;
+        } catch { return null; }
     },
 
     removeCurrentUser() {
-        storage.removeItem('currentUser');
+        sessionStorage.removeItem('rideflow_currentUser');
     },
 
     logout() {
         this.removeAuthToken();
         this.removeCurrentUser();
-        storage.removeItem('userRole');
+        sessionStorage.removeItem('rideflow_userRole');
     }
 };
 
