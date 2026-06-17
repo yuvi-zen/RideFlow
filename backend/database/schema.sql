@@ -304,11 +304,11 @@ SELECT
     u.full_name,
     COALESCE(d.average_rating, 0) AS average_rating,
     COALESCE(COUNT(DISTINCT r.id), 0) AS total_rides,
-    COALESCE(SUM(CASE WHEN p.payment_status = 'Paid' THEN p.amount ELSE 0 END), 0) AS total_earnings
+    COALESCE(SUM(de.net_earning), 0) AS total_earnings
 FROM drivers d
 JOIN users u ON d.user_id = u.id
 LEFT JOIN rides r ON r.driver_id = d.id AND r.status = 'Completed'
-LEFT JOIN payments p ON p.ride_id = r.id
+LEFT JOIN driver_earnings de ON de.ride_id = r.id
 GROUP BY d.id, u.full_name, d.average_rating
 ORDER BY d.average_rating DESC;
 
@@ -344,7 +344,7 @@ END;
 DROP PROCEDURE IF EXISTS get_revenue_by_city;
 CREATE PROCEDURE get_revenue_by_city()
 BEGIN
-    SELECT l.city, SUM(r.final_fare) AS total_revenue
+    SELECT l.city, SUM(r.final_fare * 0.15) AS total_revenue
     FROM rides r JOIN locations l ON r.pickup_location_id = l.id
     WHERE r.status = 'Completed' GROUP BY l.city;
 END;
