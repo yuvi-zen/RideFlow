@@ -71,7 +71,8 @@ exports.findById = async (id) => {
 exports.getRidesWithFilters = async (filters = {}) => {
   const { status, rider_id, driver_id, city, limit = 50, offset = 0 } = filters;
   let sql = `SELECT r.id, r.rider_id, r.driver_id, r.status,
-               r.subtotal, r.final_fare, r.created_at,
+               r.subtotal as estimated_fare, r.distance_km, r.final_fare, r.created_at,
+               r.pickup_location_id, r.dropoff_location_id,
                u.full_name as rider_name, u.city as rider_city, d.full_name as driver_name
                FROM ${tableName} r
                LEFT JOIN users u ON r.rider_id = u.id

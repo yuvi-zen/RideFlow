@@ -240,7 +240,7 @@ async function startRide(req, res, next) {
       return errorResponse(res, 'Only accepted rides can be started', 400);
     }
 
-    const updated = await rideModel.updateStatus(rideId, 'Started');
+    const updated = await rideModel.updateStatus(rideId, 'In Progress');
 
     return successResponse(res, updated, 'Ride started successfully', 200);
   } catch (error) {

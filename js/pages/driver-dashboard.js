@@ -506,9 +506,8 @@ class DriverDashboard {
         this.renderActiveTrip(container);
     }
 
-    // === SECTION 2: renderActiveTrip() — En-Route Experience ===
     renderActiveTrip(container) {
-        const currentRide = mockRides.find(r => r.driver_id === this.driver.id && r.status === 'In Progress');
+        const currentRide = this.allTrips.find(r => r.driver_id === this.driver.id && ['Accepted', 'Driver En Route', 'In Progress'].includes(r.status));
         if (!currentRide) {
             container.innerHTML = `
                 <div class="no-active-trip">
@@ -1129,9 +1128,46 @@ class DriverDashboard {
             
             // Move to current ride view
             this.renderSection('current-ride');
+
+            // Start automated 60s trip simulation with 15s intervals
+            this.startAutomatedTripSimulation(rideId);
+
         } catch (error) {
             showToast(error.message, 'error');
         }
+    }
+
+    startAutomatedTripSimulation(rideId) {
+        let step = 0;
+        showToast('Trip automated simulation started...', 'info');
+        
+        const simInterval = setInterval(async () => {
+            step++;
+            try {
+                if (step === 1) { // 15s
+                    showToast('Driver En Route to Pickup...', 'info');
+                    // We update local status for immediate UI feedback
+                    const ride = this.allTrips.find(r => r.id === rideId);
+                    if(ride) ride.status = 'Driver En Route';
+                    this.renderSection('current-ride');
+                } else if (step === 2) { // 30s
+                    await apiClient.put(`/rides/${rideId}/start`);
+                    showToast('Trip Started & In Progress!', 'info');
+                    await this.refreshOverviewData();
+                    if (this.section === 'current-ride') this.renderSection('current-ride');
+                } else if (step === 3) { // 45s
+                    showToast('Approaching Destination...', 'info');
+                } else if (step >= 4) { // 60s
+                    clearInterval(simInterval);
+                    await apiClient.put(`/rides/${rideId}/complete`, { final_amount: 450, actual_distance: 8.7 });
+                    showToast('Trip Completed!', 'success');
+                    await this.refreshOverviewData();
+                    this.showTripCompletionModal();
+                }
+            } catch (error) {
+                console.error('Simulation error:', error);
+            }
+        }, 15000); // 15 second intervals
     }
 
     renderRideRequests(container) {
