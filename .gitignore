@@ -6,3 +6,13 @@ build/
 *.log
 .vscode/
 .gemini/
+
+# Private Project Files
+elden_ring_logins.txt
+rubric.txt
+project/
+project.txt
+*.md
+!README.md
+scratch/
+scratch_test.js
