@@ -266,21 +266,42 @@ async function completeRide(req, res, next) {
       return errorResponse(res, 'Ride not found', 404);
     }
 
-    if (ride.status !== 'Started') {
-      return errorResponse(res, 'Only started rides can be completed', 400);
+    if (!['In Progress', 'Accepted', 'Driver En Route'].includes(ride.status)) {
+      return errorResponse(res, `Cannot complete a ride with status: ${ride.status}`, 400);
     }
+
+    // Use provided amount or fall back to estimated fare from the ride
+    const resolvedAmount = final_amount || ride.estimated_fare || ride.subtotal || 0;
+    const resolvedDistance = actual_distance || ride.distance_km || 0;
 
     // FULFILL RUBRIC: TRANSACTION MANAGEMENT
     const updated = await dbWrapper.transaction(async (conn) => {
       // 1. Update ride status
       await conn.query(
         `UPDATE rides SET status = ?, final_fare = ?, distance_km = ?, dropoff_time = NOW() WHERE id = ?`,
-        ['Completed', final_amount, actual_distance, rideId]
+        ['Completed', resolvedAmount, resolvedDistance, rideId]
       );
 
-      // 2. The trigger 'archive_completed_ride' will automatically handle history,
-      // but we demonstrate manual transaction logic here if needed.
-      
+      // 2. Insert into payments (only if one doesn't already exist for this ride)
+      const [existingPayment] = await conn.query(`SELECT id FROM payments WHERE ride_id = ?`, [rideId]);
+      if (!existingPayment || existingPayment.length === 0) {
+        await conn.query(
+          `INSERT INTO payments (ride_id, rider_id, amount, payment_method, payment_status) VALUES (?, ?, ?, ?, ?)`,
+          [rideId, ride.rider_id, resolvedAmount, 'Cash', 'Paid']
+        );
+      }
+
+      // 3. Insert into driver_earnings (15% commission) — only if not already recorded
+      const [existingEarning] = await conn.query(`SELECT id FROM driver_earnings WHERE ride_id = ?`, [rideId]);
+      if (!existingEarning || existingEarning.length === 0) {
+        const commissionPercent = 15;
+        const netEarning = resolvedAmount * 0.85;
+        await conn.query(
+          `INSERT INTO driver_earnings (driver_id, ride_id, gross_fare, commission_percent, net_earning) VALUES (?, ?, ?, ?, ?)`,
+          [ride.driver_id, rideId, resolvedAmount, commissionPercent, netEarning]
+        );
+      }
+
       return await rideModel.findById(rideId);
     });
 

@@ -11,8 +11,8 @@ async function getRevenueByDate(req, res, next) {
     const { start_date, end_date } = req.query;
     const conn = await db.getConnection();
     const [result] = await conn.query(
-      `SELECT DATE(created_at) as date, SUM(amount) as revenue, COUNT(*) as rides
-       FROM payments WHERE status = 'Paid' AND DATE(created_at) BETWEEN ? AND ?
+      `SELECT DATE(created_at) as date, SUM(amount * 0.15) as revenue, COUNT(*) as rides
+       FROM payments WHERE payment_status = 'Paid' AND DATE(created_at) BETWEEN ? AND ?
        GROUP BY DATE(created_at) ORDER BY date DESC`,
       [start_date, end_date]
     );
@@ -27,8 +27,8 @@ async function getRevenueByMethod(req, res, next) {
   try {
     const conn = await db.getConnection();
     const [result] = await conn.query(
-      `SELECT payment_method, SUM(amount) as revenue, COUNT(*) as transactions
-       FROM payments WHERE status = 'Paid' GROUP BY payment_method`
+      `SELECT payment_method, SUM(amount * 0.15) as revenue, COUNT(*) as transactions
+       FROM payments WHERE payment_status = 'Paid' GROUP BY payment_method`
     );
     conn.release();
     return successResponse(res, result, 'Revenue by method retrieved', 200);
@@ -55,9 +55,9 @@ async function getDriverEarnings(req, res, next) {
     const conn = await db.getConnection();
     const [result] = await conn.query(
       `SELECT u.id, u.full_name, d.average_rating, d.total_trips,
-              SUM(p.amount) as total_earnings, AVG(p.amount) as avg_per_ride
+              COALESCE(SUM(de.net_earning), 0) as total_earnings, COALESCE(AVG(de.net_earning), 0) as avg_per_ride
        FROM drivers d JOIN users u ON d.user_id = u.id
-       LEFT JOIN payments p ON d.id = p.driver_id AND p.status = 'Paid'
+       LEFT JOIN driver_earnings de ON d.id = de.driver_id
        GROUP BY d.id ORDER BY total_earnings DESC LIMIT ?`,
       [parseInt(limit)]
     );
@@ -138,7 +138,7 @@ async function getPlatformHealth(req, res, next) {
     const [drivers] = await conn.query(`SELECT COUNT(*) as count FROM drivers WHERE verification_status = 'Verified'`);
     const [totalRides] = await conn.query(`SELECT COUNT(*) as count FROM rides`);
     const [activeRides] = await conn.query(`SELECT COUNT(*) as count FROM ActiveRidesView`);
-    const [revenue] = await conn.query(`SELECT SUM(amount) as total FROM payments WHERE payment_status = 'Paid'`);
+    const [revenue] = await conn.query(`SELECT SUM(amount * 0.15) as total FROM payments WHERE payment_status = 'Paid'`);
     const [complaints] = await conn.query(`SELECT COUNT(*) as count FROM complaints WHERE status = 'Open'`);
     conn.release();
 

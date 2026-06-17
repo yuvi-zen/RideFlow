@@ -160,17 +160,21 @@ exports.getRiderHistory = async (riderId, limit = 20, offset = 0) => {
  */
 exports.getDriverHistory = async (driverId, limit = 20, offset = 0) => {
   const sql = `SELECT r.id, r.status, r.subtotal, r.final_fare,
-              r.pickup_time, r.dropoff_time, r.created_at,
+              COALESCE(r.final_fare, r.subtotal, 0) as estimated_fare,
+              r.pickup_time, r.dropoff_time, r.created_at, r.distance_km,
               u.full_name as rider_name,
-              rt.score as rider_rating
+              rt.score as rider_rating,
+              COALESCE(de.net_earning, 0) as driver_net_earning
        FROM ${tableName} r
        LEFT JOIN users u ON r.rider_id = u.id
        LEFT JOIN ratings rt ON rt.ride_id = r.id AND rt.rated_user_id = r.rider_id
+       LEFT JOIN driver_earnings de ON de.ride_id = r.id AND de.driver_id = ?
        WHERE r.driver_id = ? AND r.status IN ('Completed', 'Cancelled')
        ORDER BY r.created_at DESC
        LIMIT ? OFFSET ?`;
-  return await db.query(sql, [driverId, limit, offset]);
+  return await db.query(sql, [driverId, driverId, limit, offset]);
 };
+
 
 // ==================== UPDATE ====================
 

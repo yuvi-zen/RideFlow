@@ -1146,7 +1146,6 @@ class DriverDashboard {
             try {
                 if (step === 1) { // 15s
                     showToast('Driver En Route to Pickup...', 'info');
-                    // We update local status for immediate UI feedback
                     const ride = this.allTrips.find(r => r.id === rideId);
                     if(ride) ride.status = 'Driver En Route';
                     this.renderSection('current-ride');
@@ -1159,10 +1158,16 @@ class DriverDashboard {
                     showToast('Approaching Destination...', 'info');
                 } else if (step >= 4) { // 60s
                     clearInterval(simInterval);
-                    await apiClient.put(`/rides/${rideId}/complete`, { final_amount: 450, actual_distance: 8.7 });
+                    // Get the actual fare from the ride data
+                    const ride = this.allTrips.find(r => r.id === rideId);
+                    const fare = ride ? (ride.estimated_fare || ride.subtotal || ride.final_fare || 450) : 450;
+                    const distKm = ride ? (ride.distance_km || 8.7) : 8.7;
+                    await apiClient.put(`/rides/${rideId}/complete`, { final_amount: fare, actual_distance: distKm });
                     showToast('Trip Completed!', 'success');
                     await this.refreshOverviewData();
-                    this.showTripCompletionModal();
+                    const commission = parseFloat((fare * 0.15).toFixed(2));
+                    const net = parseFloat((fare * 0.85).toFixed(2));
+                    this.showTripCompletionModal({ distance: distKm, duration: 25, fare, commission, net });
                 }
             } catch (error) {
                 console.error('Simulation error:', error);
@@ -2033,14 +2038,16 @@ class DriverDashboard {
         }
     }
 
-    showTripCompletionModal() {
-        const tripSummary = {
-            distance: 8.7,
-            duration: 25,
-            fare: 450,
-            commission: 67.5,
-            net: 382.5
-        };
+    showTripCompletionModal(tripSummary) {
+        if (!tripSummary) {
+            tripSummary = {
+                distance: 8.7,
+                duration: 25,
+                fare: 450,
+                commission: 67.5,
+                net: 382.5
+            };
+        }
 
         Modal.alert({
             title: 'Complete Trip',
@@ -2104,45 +2111,56 @@ class DriverDashboard {
     }
 
     getEarningsData(period = 'today') {
-        if (this.earnings && !Array.isArray(this.earnings)) {
-            // Real API returns an object summary
-            return {
-                total: this.earnings.total || 0,
-                trips: this.earnings.ride_count || 0,
-                average: this.earnings.avg_per_ride || 0,
-                available: this.earnings.total || 0,
-                recentTrips: (this.allTrips || []).slice(0, 5).map(t => ({
+        // Always use real completed trips from allTrips if available
+        const completedTrips = (this.allTrips || []).filter(t => t.status === 'Completed');
+
+        if (completedTrips.length > 0 || (this.earnings && !Array.isArray(this.earnings))) {
+            // Calculate totals from real data
+            const recentTrips = completedTrips.slice(0, 10).map(t => {
+                const fare = parseFloat(t.final_fare || t.estimated_fare || t.subtotal || 0);
+                const net = parseFloat(t.driver_net_earning || (fare * 0.85).toFixed(2));
+                const commission = parseFloat((fare - net).toFixed(2));
+                return {
                     id: t.id,
                     rider: t.rider_name || 'Rider',
-                    fare: t.final_fare || 0,
-                    commission: (t.final_fare || 0) * 0.15,
-                    net: (t.final_fare || 0) * 0.85
-                })),
+                    fare,
+                    commission,
+                    net
+                };
+            });
+
+            // Use API earnings summary if available, otherwise calculate from trips
+            const apiTotal = this.earnings && !Array.isArray(this.earnings) ? (this.earnings.total || 0) : null;
+            const calcTotal = recentTrips.reduce((sum, t) => sum + t.net, 0);
+            const total = apiTotal !== null ? apiTotal : calcTotal;
+            const trips = (this.earnings && this.earnings.ride_count) || completedTrips.length;
+            const average = trips > 0 ? parseFloat((total / trips).toFixed(2)) : 0;
+
+            return {
+                total,
+                trips,
+                average,
+                available: total,
+                recentTrips,
                 payoutHistory: []
             };
         }
 
+        // Fallback mock data (used only when no real data exists yet)
         const mockData = {
             today: {
-                total: 1250,
-                trips: 3,
-                average: 417,
-                available: 1250,
-                recentTrips: [
-                    { id: 123, rider: 'John D.', fare: 450, commission: 67.5, net: 382.5 },
-                    { id: 124, rider: 'Sarah M.', fare: 380, commission: 57, net: 323 },
-                    { id: 125, rider: 'Ahmed K.', fare: 420, commission: 63, net: 357 }
-                ],
-                payoutHistory: [
-                    { amount: 850, date: '2024-01-15', status: 'completed' },
-                    { amount: 1200, date: '2024-01-08', status: 'completed' },
-                    { amount: 650, date: '2024-01-01', status: 'pending' }
-                ]
+                total: 0,
+                trips: 0,
+                average: 0,
+                available: 0,
+                recentTrips: [],
+                payoutHistory: []
             }
         };
 
         return mockData[period] || mockData.today;
     }
+
 
     getEarningsChartData() {
         return [120, 150, 180, 140, 200, 250, 220]; // Mock 7-day data for chart
