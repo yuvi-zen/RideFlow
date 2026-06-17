@@ -24,11 +24,11 @@ exports.createRide = async (rideData) => {
 
   const sql = `INSERT INTO ${tableName} 
                (rider_id, pickup_location_id, dropoff_location_id, 
-                scheduled_time, distance_km, subtotal, status)
-               VALUES (?, ?, ?, ?, ?, ?, 'Requested')`;
+                distance_km, subtotal, status)
+               VALUES (?, ?, ?, ?, ?, 'Requested')`;
   
   const insertId = await db.insert(sql, [rider_id, pickup_location_id, dropoff_location_id, 
-                                       scheduled_time, estimated_distance, estimated_fare]);
+                                       estimated_distance, estimated_fare]);
 
   return {
     id: insertId,

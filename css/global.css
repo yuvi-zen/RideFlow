@@ -159,6 +159,7 @@ body {
   }
 
   /* Typography */
+  :root {
   --font-family-base: 'Inter',
   -apple-system,
   BlinkMacSystemFont,
