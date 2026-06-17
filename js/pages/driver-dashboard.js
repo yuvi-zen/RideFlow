@@ -444,7 +444,7 @@ class DriverDashboard {
             </div>
 
             <!-- Incoming Ride Request Panel (hidden by default) -->
-            <div id="incoming-request-panel" class="incoming-request-panel">
+            <div id="incoming-request-panel" class="incoming-request-panel" style="display: none;">
                 <div class="request-header">
                     <div class="request-title">🚨 New Ride Request</div>
                     <div class="countdown-timer">
