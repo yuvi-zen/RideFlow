@@ -12,12 +12,27 @@ async function submitRating(req, res, next) {
     const errors = validationResult(req);
     if (!errors.isEmpty()) return validationErrorResponse(res, errors.array());
 
-    const { ride_id, ratee_id, rating, comment } = req.body;
+    let { ride_id, ratee_id, rating, comment } = req.body;
     const ride = await rideModel.findById(ride_id);
     if (!ride) return errorResponse(res, 'Ride not found', 404);
 
+    const db = require('../utils/dbWrapper');
+    if (!ratee_id) {
+      if (req.user.role === 'Rider') {
+        const [driverRow] = await db.pool.query('SELECT user_id FROM drivers WHERE id = ?', [ride.driver_id]);
+        if (!driverRow || !driverRow[0]) {
+          return errorResponse(res, 'Driver not assigned to this ride', 400);
+        }
+        ratee_id = driverRow[0].user_id;
+      } else if (req.user.role === 'Driver') {
+        ratee_id = ride.rider_id;
+      } else {
+        return errorResponse(res, 'Only riders and drivers can submit ratings', 403);
+      }
+    }
+
     const ratingRecord = await ratingModel.createRating({
-      ride_id, rater_id: req.user.id, ratee_id, rating, comment
+      ride_id, rater_id: req.user.id, rater_role: req.user.role, ratee_id, rating, comment
     });
     return successResponse(res, ratingRecord, 'Rating submitted', 201);
   } catch (error) {

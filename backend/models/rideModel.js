@@ -69,10 +69,10 @@ exports.findById = async (id) => {
  * Get rides with advanced filtering
  */
 exports.getRidesWithFilters = async (filters = {}) => {
-  const { status, rider_id, driver_id, limit = 50, offset = 0 } = filters;
+  const { status, rider_id, driver_id, city, limit = 50, offset = 0 } = filters;
   let sql = `SELECT r.id, r.rider_id, r.driver_id, r.status,
                r.subtotal, r.final_fare, r.created_at,
-               u.full_name as rider_name, d.full_name as driver_name
+               u.full_name as rider_name, u.city as rider_city, d.full_name as driver_name
                FROM ${tableName} r
                LEFT JOIN users u ON r.rider_id = u.id
                LEFT JOIN drivers dr ON r.driver_id = dr.id
@@ -92,6 +92,10 @@ exports.getRidesWithFilters = async (filters = {}) => {
     sql += ` AND r.driver_id = ?`;
     params.push(driver_id);
   }
+  if (city) {
+    sql += ` AND u.city = ?`;
+    params.push(city);
+  }
 
   sql += ` ORDER BY r.created_at DESC LIMIT ? OFFSET ?`;
   params.push(limit, offset);
@@ -103,21 +107,28 @@ exports.getRidesWithFilters = async (filters = {}) => {
  * Get ride count with filters
  */
 exports.getRideCount = async (filters = {}) => {
-  const { status, rider_id, driver_id } = filters;
-  let sql = `SELECT COUNT(*) as count FROM ${tableName} WHERE 1=1`;
+  const { status, rider_id, driver_id, city } = filters;
+  let sql = `SELECT COUNT(*) as count 
+             FROM ${tableName} r
+             LEFT JOIN users u ON r.rider_id = u.id
+             WHERE 1=1`;
   const params = [];
 
   if (status) {
-    sql += ` AND status = ?`;
+    sql += ` AND r.status = ?`;
     params.push(status);
   }
   if (rider_id) {
-    sql += ` AND rider_id = ?`;
+    sql += ` AND r.rider_id = ?`;
     params.push(rider_id);
   }
   if (driver_id) {
-    sql += ` AND driver_id = ?`;
+    sql += ` AND r.driver_id = ?`;
     params.push(driver_id);
+  }
+  if (city) {
+    sql += ` AND u.city = ?`;
+    params.push(city);
   }
 
   const rows = await db.query(sql, params);

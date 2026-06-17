@@ -168,7 +168,7 @@ class RiderDashboard {
         }
     }
 
-    renderSection(section) {
+    async renderSection(section) {
         this.section = section || 'overview';
         this.layout.setActive(this.section);
 
@@ -185,7 +185,7 @@ class RiderDashboard {
                 this.renderOverview(container);
                 break;
             case 'request':
-                this.renderRequest(container);
+                await this.renderRequest(container);
                 break;
             case 'rides':
                 this.renderRideHistory(container);
@@ -324,199 +324,196 @@ class RiderDashboard {
         }
     }
 
-    renderRequest(container) {
-        this.renderBookRide(container);
+    async renderRequest(container) {
+        await this.renderBookRide(container);
     }
 
-    // === SECTION 1: renderBookRide() — The hero feature ===
-    renderBookRide(container) {
-        const locationOptions = (mockLocations || []).map(l => `<option value="${l.address}">`).join('');
-        const islamabadOptions = Object.keys(window.RideFlowLocations || {}).map(name => `<option value="${name}">`).join('');
+    // === SECTION 1: renderBookRide() — City-Based Static Booking ===
+    async renderBookRide(container) {
+        // Load city-filtered locations from the backend
+        let cityLocations = [];
+        const userCity = (this.currentUser.city || 'Islamabad');
+        try {
+            const locRes = await locationAPI.getLocations(userCity);
+            if (locRes.success) cityLocations = locRes.data || [];
+        } catch (e) {
+            console.warn('Could not load locations from server, using empty list:', e);
+        }
+
+        const locationOptions = cityLocations.map(l =>
+            `<option value="${l.id}" data-address="${l.address}">${l.address}</option>`
+        ).join('');
 
         container.innerHTML = `
-            <div class="book-ride-layout">
-                <!-- LEFT PANEL - Smart Booking Form -->
-                <div class="book-ride-form-panel">
-                    <div class="glass card" style="padding: 24px;">
-                        <h2 style="color: var(--rf-rider-primary); margin-bottom: 24px;">Book Your Ride</h2>
-
-                        <!-- Islamabad Location Datalist -->
-                        <datalist id="islamabad-locations">${locationOptions}${islamabadOptions}</datalist>
-
-                        <!-- Step 1 - Location Input -->
-                        <div class="booking-step">
-                            <h3 style="color: var(--rf-text); margin-bottom: 16px;">📍 Where to?</h3>
-
-                            <div class="location-inputs">
-                                <div class="location-input-group">
-                                    <label class="location-label">From</label>
-                                    <div class="location-input-wrapper">
-                                        <input type="text" id="pickup-input" class="form-control location-input"
-                                               placeholder="Enter pickup location" autocomplete="off" list="islamabad-locations">
-                                        <button class="location-btn" id="use-my-location" title="Use my location">
-                                            📍
-                                        </button>
-                                    </div>
-                                    <div id="pickup-suggestions" class="location-suggestions"></div>
-                                </div>
-
-                                <button class="swap-locations-btn" id="swap-locations" title="Swap locations">
-                                    ↕
-                                </button>
-
-                                <div class="location-input-group">
-                                    <label class="location-label">To</label>
-                                    <div class="location-input-wrapper">
-                                        <input type="text" id="dropoff-input" class="form-control location-input"
-                                               placeholder="Enter destination" autocomplete="off" list="islamabad-locations">
-                                    </div>
-                                    <div id="dropoff-suggestions" class="location-suggestions"></div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Step 2 - Vehicle Type Selector -->
-                        <div class="booking-step">
-                            <h3 style="color: var(--rf-text); margin: 24px 0 16px;">🚗 Choose Vehicle</h3>
-                            <div class="vehicle-selector" id="vehicle-selector">
-                                <div class="vehicle-card" data-type="bike">
-                                    <div class="vehicle-icon">🏍️</div>
-                                    <div class="vehicle-info">
-                                        <div class="vehicle-name">Bike</div>
-                                        <div class="vehicle-price">PKR 50-150</div>
-                                        <div class="vehicle-wait">2-5 min</div>
-                                    </div>
-                                </div>
-                                <div class="vehicle-card selected" data-type="economy">
-                                    <div class="vehicle-icon">🚗</div>
-                                    <div class="vehicle-info">
-                                        <div class="vehicle-name">Economy</div>
-                                        <div class="vehicle-price">PKR 150-400</div>
-                                        <div class="vehicle-wait">3-8 min</div>
-                                    </div>
-                                </div>
-                                <div class="vehicle-card" data-type="premium">
-                                    <div class="vehicle-icon">💎</div>
-                                    <div class="vehicle-info">
-                                        <div class="vehicle-name">Premium</div>
-                                        <div class="vehicle-price">PKR 400-800</div>
-                                        <div class="vehicle-wait">5-12 min</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Step 3 - Ride Options -->
-                        <div class="booking-step">
-                            <h3 style="color: var(--rf-text); margin: 24px 0 16px;">⚙️ Options</h3>
-
-                            <div class="ride-options">
-                                <div class="schedule-toggle">
-                                    <label class="toggle-label">
-                                        <input type="checkbox" id="schedule-toggle">
-                                        <span class="toggle-slider"></span>
-                                        Schedule for later
-                                    </label>
-                                    <input type="datetime-local" id="scheduled-time" class="form-control"
-                                           style="display: none; margin-top: 8px;">
-                                </div>
-
-                                <div class="promo-input-group">
-                                    <input type="text" id="promo-input" class="form-control"
-                                           placeholder="Enter promo code">
-                                    <button class="btn btn-secondary" id="apply-promo">Apply</button>
-                                </div>
-                                <div id="promo-message" class="promo-message" style="display: none;"></div>
-                            </div>
-                        </div>
-
-                        <!-- Step 4 - Fare Breakdown -->
-                        <div class="fare-breakdown-card glass" id="fare-breakdown" style="display: none;">
-                            <h4 style="color: var(--rf-text); margin-bottom: 16px;">💰 Fare Breakdown</h4>
-
-                            <div class="fare-row">
-                                <span>Base fare</span>
-                                <span id="base-fare">PKR 0</span>
-                            </div>
-                            <div class="fare-row">
-                                <span>Distance (per km)</span>
-                                <span id="distance-fare">PKR 0</span>
-                            </div>
-                            <div class="fare-row">
-                                <span>Surge multiplier</span>
-                                <span id="surge-multiplier">1.0x</span>
-                            </div>
-                            <div class="fare-row promo-row" id="promo-discount" style="display: none;">
-                                <span id="promo-label">Promo discount</span>
-                                <span id="promo-amount" style="color: var(--rf-success);">-PKR 0</span>
-                            </div>
-
-                            <hr style="border-color: var(--rf-border); margin: 12px 0;">
-
-                            <div class="fare-row total-row">
-                                <span style="font-weight: 600;">Total</span>
-                                <span id="total-fare" style="font-size: 18px; font-weight: 700; color: var(--rf-rider-primary);">PKR 0</span>
-                            </div>
-
-                            <div class="payment-methods" style="margin-top: 16px;">
-                                <label style="font-weight: 500; color: var(--rf-text);">Payment method:</label>
-                                <div class="payment-pills">
-                                    <button class="payment-pill active" data-method="cash">💵 Cash</button>
-                                    <button class="payment-pill" data-method="wallet">👛 Wallet</button>
-                                    <button class="payment-pill" data-method="card">💳 Card</button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Find Driver CTA -->
-                        <button class="btn find-driver-btn" id="find-driver-btn" disabled>
-                            <span class="btn-text">Find Driver</span>
-                            <div class="btn-loader" style="display: none;">
-                                <div class="spinner"></div>
-                            </div>
-                        </button>
+            <div class="book-ride-layout" style="max-width:680px;margin:0 auto;">
+                <div class="glass card" style="padding:32px;">
+                    <h2 style="color:var(--rf-rider-primary);margin-bottom:8px;">🚖 Book Your Ride</h2>
+                    <div style="font-size:13px;color:#64748b;margin-bottom:28px;">
+                        City: <strong>${userCity}</strong> &nbsp;|&nbsp; Select pickup &amp; drop-off from your city's locations
                     </div>
-                </div>
 
-                <!-- RIGHT PANEL - Live Map -->
-                <div class="book-ride-map-panel">
-                    <div id="rider-map-container" style="height:350px; width:100%; border-radius:12px; margin-top:16px; border:1px solid #e5e7eb; overflow:hidden;"></div>
+                    <!-- Pickup -->
+                    <div class="form-group" style="margin-bottom:18px;">
+                        <label style="font-weight:600;color:var(--rf-text);display:block;margin-bottom:6px;">📍 Pickup Location</label>
+                        <select id="pickup-select" class="form-control" style="width:100%;padding:12px;border-radius:10px;border:1px solid var(--rf-border);background:var(--rf-surface);">
+                            <option value="">-- Select pickup --</option>
+                            ${locationOptions}
+                        </select>
+                    </div>
 
-                    <div id="route-summary" style="display:none; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:8px; padding:12px 16px; margin-top:12px;">
-                        <div style="display:flex; gap:24px; flex-wrap:wrap;">
-                            <div><span style="font-size:12px;color:#6b7280;">Distance</span><br><strong id="route-distance">—</strong></div>
-                            <div><span style="font-size:12px;color:#6b7280;">ETA</span><br><strong id="route-eta">—</strong></div>
-                            <div><span style="font-size:12px;color:#6b7280;">Economy</span><br><strong id="route-fare-economy">—</strong></div>
-                            <div><span style="font-size:12px;color:#6b7280;">Comfort</span><br><strong id="route-fare-comfort">—</strong></div>
-                            <div><span style="font-size:12px;color:#6b7280;">Premium</span><br><strong id="route-fare-premium">—</strong></div>
+                    <!-- Dropoff -->
+                    <div class="form-group" style="margin-bottom:18px;">
+                        <label style="font-weight:600;color:var(--rf-text);display:block;margin-bottom:6px;">🏁 Drop-off Location</label>
+                        <select id="dropoff-select" class="form-control" style="width:100%;padding:12px;border-radius:10px;border:1px solid var(--rf-border);background:var(--rf-surface);">
+                            <option value="">-- Select drop-off --</option>
+                            ${locationOptions}
+                        </select>
+                    </div>
+
+                    <!-- Vehicle Type -->
+                    <div class="form-group" style="margin-bottom:18px;">
+                        <label style="font-weight:600;color:var(--rf-text);display:block;margin-bottom:10px;">🚗 Vehicle Type</label>
+                        <div style="display:flex;gap:12px;flex-wrap:wrap;">
+                            <label style="flex:1;min-width:100px;cursor:pointer;">
+                                <input type="radio" name="ride_type" value="Bike" style="margin-right:6px;">
+                                🏍️ Bike <span style="font-size:12px;color:#64748b;">(PKR 50-150)</span>
+                            </label>
+                            <label style="flex:1;min-width:100px;cursor:pointer;">
+                                <input type="radio" name="ride_type" value="Economy" checked style="margin-right:6px;">
+                                🚗 Economy <span style="font-size:12px;color:#64748b;">(PKR 150-400)</span>
+                            </label>
+                            <label style="flex:1;min-width:100px;cursor:pointer;">
+                                <input type="radio" name="ride_type" value="Premium" style="margin-right:6px;">
+                                💎 Premium <span style="font-size:12px;color:#64748b;">(PKR 400-800)</span>
+                            </label>
                         </div>
                     </div>
 
-                    <!-- Driver Arrival Indicator -->
-                    <div id="driver-arrival-panel" style="display:none; background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px; padding:12px 16px; margin-top:12px;">
-                        <div style="display:flex; align-items:center; gap:12px;">
-                            <div style="font-size:24px;">🚗</div>
-                            <div>
-                                <div style="font-weight:600;" id="driver-arrival-text">Driver is on the way...</div>
-                                <div style="font-size:12px; color:#6b7280;" id="driver-progress-text">0% away</div>
-                            </div>
+                    <!-- Fare estimate display -->
+                    <div id="booking-fare-display" style="display:none;background:rgba(37,99,235,0.07);border:1px solid rgba(37,99,235,0.2);border-radius:10px;padding:14px;margin-bottom:18px;">
+                        <div style="display:flex;justify-content:space-between;">
+                            <span style="color:#64748b;">Estimated Fare</span>
+                            <strong id="booking-fare-amount" style="color:var(--rf-rider-primary);">PKR —</strong>
                         </div>
+                        <div style="display:flex;justify-content:space-between;margin-top:6px;">
+                            <span style="color:#64748b;">Estimated Distance</span>
+                            <strong id="booking-dist-amount">— km</strong>
+                        </div>
+                    </div>
+
+                    <!-- Error message -->
+                    <div id="booking-error" style="display:none;background:#fef2f2;border:1px solid #fca5a5;border-radius:8px;padding:12px;color:#dc2626;margin-bottom:14px;font-size:14px;"></div>
+
+                    <!-- Book Button -->
+                    <button id="book-ride-btn" class="btn btn-primary" style="width:100%;padding:15px;font-size:16px;font-weight:700;border-radius:12px;opacity:0.5;cursor:not-allowed;" disabled>
+                        Find Driver 🔍
+                    </button>
+
+                    <div id="booking-status" style="display:none;text-align:center;margin-top:18px;padding:16px;border-radius:10px;background:rgba(22,163,74,0.07);border:1px solid #bbf7d0;">
+                        <div style="font-size:22px;margin-bottom:8px;">✅</div>
+                        <div style="font-weight:700;color:#16a34a;">Ride Requested!</div>
+                        <div style="color:#64748b;font-size:14px;margin-top:4px;">A driver from <strong>${userCity}</strong> will accept shortly. Refreshing...</div>
                     </div>
                 </div>
             </div>
         `;
 
-        this.initBookRideForm();
-        this.initBookingMap();
+        this._cityLocations = cityLocations;
+        this._initCityBookingForm();
+    }
 
-        // Expose validation on window for mapManager click handler
-        var self = this;
-        window.validateFindDriver = function () {
-            self.validateFindDriver();
-        };
+    _initCityBookingForm() {
+        const self = this;
+        const pickupSel = document.getElementById('pickup-select');
+        const dropoffSel = document.getElementById('dropoff-select');
+        const bookBtn = document.getElementById('book-ride-btn');
 
-        // Initial button state check
-        this.validateFindDriver();
+        function checkReady() {
+            const pickupId = pickupSel ? pickupSel.value : '';
+            const dropoffId = dropoffSel ? dropoffSel.value : '';
+            const same = pickupId && dropoffId && pickupId === dropoffId;
+            const ready = pickupId && dropoffId && !same;
+
+            if (bookBtn) {
+                bookBtn.disabled = !ready;
+                bookBtn.style.opacity = ready ? '1' : '0.5';
+                bookBtn.style.cursor = ready ? 'pointer' : 'not-allowed';
+            }
+
+            const errEl = document.getElementById('booking-error');
+            if (same && errEl) {
+                errEl.style.display = 'block';
+                errEl.textContent = 'Pickup and drop-off cannot be the same location.';
+            } else if (errEl) {
+                errEl.style.display = 'none';
+            }
+
+            if (ready) {
+                // Show rough fare estimate
+                const dist = (Math.random() * 15 + 2).toFixed(1);
+                const rideType = document.querySelector('input[name="ride_type"]:checked')?.value || 'Economy';
+                const rates = { Bike: { base: 30, km: 15 }, Economy: { base: 80, km: 25 }, Premium: { base: 200, km: 50 } };
+                const r = rates[rideType] || rates.Economy;
+                const fare = Math.round(r.base + (r.km * parseFloat(dist)));
+                const fareEl = document.getElementById('booking-fare-display');
+                if (fareEl) {
+                    fareEl.style.display = 'block';
+                    document.getElementById('booking-fare-amount').textContent = `PKR ${fare}`;
+                    document.getElementById('booking-dist-amount').textContent = `${dist} km (est.)`;
+                    self._estimatedFare = fare;
+                    self._estimatedDist = parseFloat(dist);
+                }
+            }
+        }
+
+        if (pickupSel) pickupSel.addEventListener('change', checkReady);
+        if (dropoffSel) dropoffSel.addEventListener('change', checkReady);
+        document.querySelectorAll('input[name="ride_type"]').forEach(r => r.addEventListener('change', checkReady));
+
+        if (bookBtn) {
+            bookBtn.addEventListener('click', () => self._submitCityRide());
+        }
+    }
+
+    async _submitCityRide() {
+        const pickupSel = document.getElementById('pickup-select');
+        const dropoffSel = document.getElementById('dropoff-select');
+        const rideTypeEl = document.querySelector('input[name="ride_type"]:checked');
+        const bookBtn = document.getElementById('book-ride-btn');
+        const statusEl = document.getElementById('booking-status');
+
+        const pickupId = parseInt(pickupSel?.value);
+        const dropoffId = parseInt(dropoffSel?.value);
+        const rideType = rideTypeEl?.value || 'Economy';
+
+        if (!pickupId || !dropoffId || pickupId === dropoffId) {
+            showToast('Please select valid pickup and drop-off locations.', 'warning');
+            return;
+        }
+
+        if (bookBtn) { bookBtn.disabled = true; bookBtn.textContent = '⏳ Requesting...'; }
+
+        try {
+            const response = await riderAPI.requestRide({
+                pickup_location_id: pickupId,
+                dropoff_location_id: dropoffId,
+                ride_type: rideType,
+                distance_km: this._estimatedDist || 5.0,
+                estimated_fare: this._estimatedFare || 300
+            });
+
+            if (response.success) {
+                this.currentRide = response.data;
+                if (statusEl) statusEl.style.display = 'block';
+                if (bookBtn) bookBtn.style.display = 'none';
+                showToast('Ride requested! A driver from your city will accept shortly.', 'success');
+                setTimeout(() => this.render(), 3000);
+            }
+        } catch (error) {
+            console.error('[RideFlow] Ride request error:', error);
+            showToast(error.message || 'Could not request ride. Please try again.', 'error');
+            if (bookBtn) { bookBtn.disabled = false; bookBtn.textContent = 'Find Driver 🔍'; }
+        }
     }
     renderActiveRide(container) {
         if (!this.currentRide) {
@@ -2454,16 +2451,15 @@ class RiderDashboard {
 
     async submitDriverRating(rideId, rating, comment) {
         try {
-            // Mock API call
-            const ratingData = {
-                ride_id: rideId,
-                score: rating,
-                comment: comment,
-                created_at: new Date().toISOString()
-            };
+            // Submit rating via real backend API
+            const response = await riderAPI.rateRide(rideId, {
+                rating: rating,
+                comment: comment
+            });
 
-            if (!mockRatings) mockRatings = [];
-            mockRatings.push(ratingData);
+            if (!response.success) {
+                throw new Error(response.message || 'Rating failed');
+            }
 
             // Show confetti animation
             this.showConfetti();

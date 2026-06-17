@@ -342,20 +342,21 @@ class DriverDashboard {
                     🎯 Demo Mode — Simulated rides & earnings. No real transactions.
                 </div>
 
-                <!-- Map Area (55% height) -->
-                <div class="driver-map-container">
-                    <div id="driver-home-map" style="height:350px; width:100%; border-radius:12px; margin-top:16px; overflow:hidden;"></div>
+                <!-- Status Area (55% height) -->
+                <div class="driver-map-container" style="background:var(--rf-surface); border:1px solid var(--rf-border); display:flex; flex-direction:column; align-items:center; justify-content:center; padding:40px; text-align:center;">
+                    <h2 style="margin-bottom:8px; color:var(--rf-text);">City: ${this.currentUser.city || 'Islamabad'}</h2>
+                    <p style="color:var(--rf-text-muted); margin-bottom:24px;">Waiting for ride requests in your area.</p>
 
                     <!-- Online/Offline Toggle -->
-                    <div class="online-toggle-overlay">
-                        <button id="online-toggle-btn" class="online-toggle-btn ${isOnline ? 'online' : 'offline'}">
+                    <div style="position:relative; z-index:10;">
+                        <button id="online-toggle-btn" class="online-toggle-btn ${isOnline ? 'online' : 'offline'}" style="position:relative; top:auto; left:auto; transform:none; padding:12px 32px; font-size:16px;">
                             <span class="toggle-icon">${isOnline ? '🟢' : '🔴'}</span>
                             <span class="toggle-text">${isOnline ? 'Go Offline' : 'Go Online'}</span>
                         </button>
                     </div>
 
                     <!-- Offline Banner -->
-                    <div id="offline-banner" class="offline-banner" style="display: ${isOnline ? 'none' : 'block'}">
+                    <div id="offline-banner" class="offline-banner" style="display: ${isOnline ? 'none' : 'block'}; position:relative; margin-top:16px; top:auto; left:auto; transform:none;">
                         <div class="offline-content">
                             <span class="offline-icon">🚫</span>
                             <span>You are offline</span>
@@ -496,7 +497,7 @@ class DriverDashboard {
             </div>
         `;
 
-        this.initHomeMap();
+        // Removed this.initHomeMap();
         this.initOnlineToggle();
         this.simulateIncomingRequest();
     }
@@ -526,35 +527,21 @@ class DriverDashboard {
 
         container.innerHTML = `
             <div class="active-trip-layout">
-                <!-- Full Map -->
-                <div id="driver-map-container" style="height:350px; width:100%; border-radius:12px; margin-top:16px; border:1px solid #e5e7eb; overflow:hidden;"></div>
+            <div class="active-trip-layout">
+                <div style="background:var(--rf-surface); border:1px solid var(--rf-border); border-radius:12px; padding:24px; margin-top:16px; text-align:center;">
+                    <div style="font-size:48px; margin-bottom:16px;">🚖</div>
+                    <h2 style="margin-bottom:8px;">${currentRide.status}</h2>
+                    <p style="color:var(--rf-text-muted);">Drive safely to your destination.</p>
+                </div>
 
                 <div style="display:flex; gap:16px; margin-top:12px; flex-wrap:wrap;">
                     <div style="background:#eff6ff; border-radius:8px; padding:10px 16px; flex:1;">
-                        <div style="font-size:12px; color:#6b7280;">ETA to pickup</div>
-                        <div style="font-size:20px; font-weight:600;" id="driver-eta-pickup">Calculating...</div>
+                        <div style="font-size:12px; color:#6b7280;">Estimated Distance</div>
+                        <div style="font-size:20px; font-weight:600;" id="driver-trip-distance">${currentRide.distance_km || 5} km</div>
                     </div>
                     <div style="background:#f0fdf4; border-radius:8px; padding:10px 16px; flex:1;">
-                        <div style="font-size:12px; color:#6b7280;">Trip distance</div>
-                        <div style="font-size:20px; font-weight:600;" id="driver-trip-distance">—</div>
-                    </div>
-                </div>
-
-                <!-- Navigation Header (Glass Pill) -->
-                <div class="navigation-header">
-                    <div class="nav-instruction">
-                        <div class="nav-icon">↪</div>
-                        <div class="nav-text">Turn right on Shahrah-e-Faisal in 200m</div>
-                    </div>
-                    <div class="nav-eta">
-                        <div class="eta-toggle">
-                            <button class="eta-btn active" data-target="pickup">ETA Pickup: 5 min</button>
-                            <button class="eta-btn" data-target="dropoff">ETA Dropoff: 25 min</button>
-                        </div>
-                    </div>
-                    <div class="speed-display">
-                        <span class="speed-value">45</span>
-                        <span class="speed-unit">km/h</span>
+                        <div style="font-size:12px; color:#6b7280;">Estimated Fare</div>
+                        <div style="font-size:20px; font-weight:600;" id="driver-eta-pickup">PKR ${currentRide.estimated_fare || 350}</div>
                     </div>
                 </div>
 
@@ -632,32 +619,24 @@ class DriverDashboard {
         container.innerHTML = '<div class="card"><div class="card-header"><h3>Ride Requests</h3></div><div class="card-body" id="ride-requests-list"></div></div>';
         const list = document.getElementById('ride-requests-list');
         list.innerHTML = this.incomingRequests.map(request => {
-            const rider = mockUsers.find(u => u.id === request.rider_id) || {};
-            const route = routePlanner.createRouteFromRide(request);
-            const optimized = routePlanner.optimizeRoute(route, { factor: 1.15, alternate: true });
-            const recommendation = routePlanner.findBestDriver({
-                pickup_location: request.pickup_location || request.pickup_location_id,
-                dropoff_location: request.dropoff_location || request.dropoff_location_id
-            });
-            const priorityBadge = recommendation && recommendation.driver.id === this.driver.id ? '<span class="badge badge-success">High priority</span>' : '';
-            return `
+            const rider = window.mockUsers?.find(u => u.id === request.rider_id) || { full_name: request.rider_name || 'Rider' };
+            const isSameCity = true; // We now filter by city on backend
+            
+            return \`
                 <div class="ride-request-card">
                     <div>
-                        <p>${priorityBadge}</p>
-                        <p><strong>Pickup:</strong> ${this.getRideLocationLabel(request, 'pickup')}</p>
-                        <p><strong>Drop-off:</strong> ${this.getRideLocationLabel(request, 'dropoff')}</p>
-                        <p><strong>Rider:</strong> ${rider.full_name || 'Unknown'}</p>
-                        <p><strong>ETA:</strong> ${formatTime(optimized.eta)}</p>
-                        <p><strong>Distance:</strong> ${optimized.distance_km.toFixed(1)} km</p>
-                        <p class="text-muted">${optimized.traffic_alert || 'Route clear.'}</p>
+                        <p><strong>Pickup:</strong> \${this.getRideLocationLabel(request, 'pickup')}</p>
+                        <p><strong>Drop-off:</strong> \${this.getRideLocationLabel(request, 'dropoff')}</p>
+                        <p><strong>Rider:</strong> \${rider.full_name || 'Unknown'}</p>
+                        <p><strong>Est. Distance:</strong> \${request.distance_km || 5.0} km</p>
+                        <p><strong>Est. Fare:</strong> PKR \${request.estimated_fare || 350}</p>
                     </div>
                     <div class="ride-request-actions">
-                        <button class="btn btn-danger-outline" onclick="driverDash.rejectRide(${request.id})">Reject</button>
-                        <button class="btn btn-secondary" onclick="driverDash.showRequestRoute(${request.id})">Route</button>
-                        <button class="btn btn-success" onclick="driverDash.acceptRide(${request.id})">Accept</button>
+                        <button class="btn btn-danger-outline" onclick="driverDash.rejectRide(\${request.id})">Reject</button>
+                        <button class="btn btn-success" onclick="driverDash.acceptRide(\${request.id})">Accept</button>
                     </div>
                 </div>
-            `;
+            \`;
         }).join('');
     }
 
@@ -1276,16 +1255,15 @@ class DriverDashboard {
             return;
         }
 
-        const route = routePlanner.createRouteFromRide(currentRide);
-        const optimizedRoute = routePlanner.optimizeRoute(route, { factor: 1.1, alternate: true });
-
         Modal.alert({
             title: 'Current Route',
-            content: `<div id="driver-current-route-map-modal" style="min-height:260px;"></div>`,
-            onOpen: () => {
-                const map = new RouteMap('driver-current-route-map-modal');
-                map.render(optimizedRoute);
-            }
+            message: `
+                <div style="padding: 16px;">
+                    <p><strong>Pickup:</strong> ${this.getRideLocationLabel(currentRide, 'pickup')}</p>
+                    <p><strong>Dropoff:</strong> ${this.getRideLocationLabel(currentRide, 'dropoff')}</p>
+                    <p><strong>Est. Distance:</strong> ${currentRide.distance_km || 5} km</p>
+                </div>
+            `
         });
     }
 
@@ -1296,16 +1274,16 @@ class DriverDashboard {
             return;
         }
 
-        const route = routePlanner.createRouteFromRide(ride);
-        const optimizedRoute = routePlanner.optimizeRoute(route, { factor: 1.1, alternate: true });
-
         Modal.alert({
             title: 'Request Route',
-            content: `<div id="driver-request-route-map-modal" style="min-height:260px;"></div>`,
-            onOpen: () => {
-                const map = new RouteMap('driver-request-route-map-modal');
-                map.render(optimizedRoute);
-            }
+            message: `
+                <div style="padding: 16px;">
+                    <p><strong>Pickup:</strong> ${this.getRideLocationLabel(ride, 'pickup')}</p>
+                    <p><strong>Dropoff:</strong> ${this.getRideLocationLabel(ride, 'dropoff')}</p>
+                    <p><strong>Est. Distance:</strong> ${ride.distance_km || 5} km</p>
+                    <p><strong>Est. Fare:</strong> PKR ${ride.estimated_fare || 300}</p>
+                </div>
+            `
         });
     }
 

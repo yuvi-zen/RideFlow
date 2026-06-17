@@ -9,7 +9,7 @@ const router = express.Router();
 // NOTE: Specific named routes MUST come before /:id wildcard
 
 // POST /api/ratings
-router.post('/', authMiddleware, body('ride_id').isInt(), body('ratee_id').isInt(), body('rating').isInt({ min: 1, max: 5 }), body('comment').optional().isString(), ctrl.submitRating);
+router.post('/', authMiddleware, body('ride_id').isInt(), body('ratee_id').optional().isInt(), body('rating').isInt({ min: 1, max: 5 }), body('comment').optional().isString(), ctrl.submitRating);
 
 // GET /api/ratings/leaderboard  — MUST be before /:id
 router.get('/leaderboard', authMiddleware, query('limit').optional().isInt(), ctrl.getLeaderboard);

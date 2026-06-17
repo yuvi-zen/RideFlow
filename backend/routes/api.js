@@ -13,6 +13,7 @@ const paymentRoutes = require('./paymentRoutes');
 const ratingRoutes = require('./ratingRoutes');
 const complaintRoutes = require('./complaintRoutes');
 const reportRoutes = require('./reportRoutes');
+const locationRoutes = require('./locationRoutes');
 const healthController = require('../controllers/healthController');
 
 const router = express.Router();
@@ -46,5 +47,8 @@ router.use('/complaints', complaintRoutes);
 
 // Admin report routes
 router.use('/reports', reportRoutes);
+
+// Location routes
+router.use('/locations', locationRoutes);
 
 module.exports = router;

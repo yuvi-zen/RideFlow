@@ -124,25 +124,38 @@ exports.getCount = async (filters = {}) => {
 /**
  * Find available drivers near location
  */
-exports.findAvailableNearby = async (latitude, longitude, radiusKm = 5) => {
-  const sql = `SELECT d.id, d.user_id, d.license_number, d.average_rating,
+exports.findAvailableNearby = async (latitude, longitude, radiusKm = 5, city = null) => {
+  let sql = `SELECT d.id, d.user_id, d.license_number, d.average_rating,
                 u.full_name, u.phone_number,
                 v.license_plate, v.vehicle_type
-         FROM ${tableName} d
+         FROM drivers d
          JOIN users u ON d.user_id = u.id
          LEFT JOIN vehicles v ON d.id = v.driver_id
          WHERE d.availability_status = 'Online'
-         AND d.verification_status = 'Verified'
-         AND ST_Distance_Sphere(
-             POINT(d.current_location_lng, d.current_location_lat),
-             POINT(?, ?)
-         ) / 1000 <= ?
-         ORDER BY ST_Distance_Sphere(
-             POINT(d.current_location_lng, d.current_location_lat),
-             POINT(?, ?)
-         ) ASC
-         LIMIT 10`;
-  return await db.query(sql, [longitude, latitude, radiusKm, longitude, latitude]);
+         AND d.verification_status = 'Verified'`;
+  const params = [];
+
+  if (city) {
+    sql += ` AND u.city = ?`;
+    params.push(city);
+  }
+
+  if (latitude !== null && longitude !== null && !city) {
+    sql += ` AND ST_Distance_Sphere(
+                 POINT(d.current_location_lng, d.current_location_lat),
+                 POINT(?, ?)
+             ) / 1000 <= ?
+             ORDER BY ST_Distance_Sphere(
+                 POINT(d.current_location_lng, d.current_location_lat),
+                 POINT(?, ?)
+             ) ASC`;
+    params.push(longitude, latitude, radiusKm, longitude, latitude);
+  } else {
+    sql += ` ORDER BY d.average_rating DESC`;
+  }
+
+  sql += ` LIMIT 10`;
+  return await db.query(sql, params);
 };
 
 // ==================== UPDATE ====================

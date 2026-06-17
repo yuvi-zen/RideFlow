@@ -9,10 +9,10 @@ const { RIDE_STATUS } = require('../config/constants');
 /**
  * Find best available drivers for a ride
  */
-exports.findMatchingDrivers = async (latitude, longitude, radiusKm = 5) => {
+exports.findMatchingDrivers = async (latitude, longitude, radiusKm = 5, city = null) => {
   try {
-    // Get available drivers near the pickup location
-    const drivers = await driverModel.findAvailableNearby(latitude, longitude, radiusKm);
+    // Get available drivers near the pickup location or in the city
+    const drivers = await driverModel.findAvailableNearby(latitude, longitude, radiusKm, city);
 
     // Sort by rating and availability
     return drivers.sort((a, b) => {

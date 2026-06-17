@@ -13,6 +13,7 @@ CREATE TABLE users (
     phone_number VARCHAR(20) NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
     role ENUM('Admin', 'Rider', 'Driver') NOT NULL,
+    city VARCHAR(100) NOT NULL DEFAULT 'Islamabad',
     account_status ENUM('Active', 'Suspended', 'Banned') DEFAULT 'Active',
     profile_photo VARCHAR(500),
     registration_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -273,6 +274,18 @@ BEGIN
     END IF;
 END;
 
+DROP TRIGGER IF EXISTS after_ride_status_update;
+CREATE TRIGGER after_ride_status_update
+AFTER UPDATE ON rides
+FOR EACH ROW
+BEGIN
+    IF NEW.status = 'Accepted' AND OLD.status != 'Accepted' AND NEW.driver_id IS NOT NULL THEN
+        UPDATE drivers SET availability_status = 'On Trip' WHERE id = NEW.driver_id;
+    ELSEIF (NEW.status = 'Completed' OR NEW.status = 'Cancelled') AND (OLD.status != 'Completed' AND OLD.status != 'Cancelled') AND NEW.driver_id IS NOT NULL THEN
+        UPDATE drivers SET availability_status = 'Online' WHERE id = NEW.driver_id;
+    END IF;
+END;
+
 -- ================================================================
 -- VIEWS
 -- ================================================================
@@ -362,6 +375,14 @@ CREATE EVENT daily_promo_expiry
 ON SCHEDULE EVERY 1 DAY
 DO
   UPDATE promo_codes SET is_active = FALSE WHERE expiry_date < CURRENT_DATE;
+
+DROP EVENT IF EXISTS auto_complete_accepted_rides;
+CREATE EVENT auto_complete_accepted_rides
+ON SCHEDULE EVERY 15 SECOND
+DO
+  UPDATE rides 
+  SET status = 'Completed', dropoff_time = CURRENT_TIMESTAMP, payment_status = 'Paid'
+  WHERE status = 'Accepted' AND updated_at <= CURRENT_TIMESTAMP - INTERVAL 60 SECOND;
 
 -- ================================================================
 -- INITIAL DATA

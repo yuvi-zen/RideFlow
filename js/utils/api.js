@@ -302,6 +302,11 @@ const locationAPI = {
 
     async getNearbyDrivers(latitude, longitude, radius = 5) {
         return apiClient.get(`/drivers/available?lat=${latitude}&lng=${longitude}&radius=${radius}`);
+    },
+
+    async getLocations(city = null) {
+        const q = city ? `?city=${encodeURIComponent(city)}` : '';
+        return apiClient.get(`/locations${q}`);
     }
 };
 

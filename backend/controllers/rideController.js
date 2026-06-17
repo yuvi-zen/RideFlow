@@ -32,7 +32,8 @@ async function requestRide(req, res, next) {
     } = req.body;
 
     // Fetch pickup coordinates for driver matching
-    const [locations] = await db.pool.query('SELECT latitude, longitude FROM locations WHERE id = ?', [pickup_location_id]);
+    const [locations] = await db.pool.query('SELECT city, latitude, longitude FROM locations WHERE id = ?', [pickup_location_id]);
+    const pickupCity = locations[0]?.city || 'Islamabad';
     const pickupCoords = locations[0] || { latitude: 33.6844, longitude: 73.0479 }; // Default to Islamabad center
 
     // Create ride request
@@ -46,10 +47,12 @@ async function requestRide(req, res, next) {
       estimated_fare
     });
 
-    // Find matching drivers near pickup
+    // Find matching drivers near pickup in the same city
     const matching = await rideMatchingService.findMatchingDrivers(
       parseFloat(pickupCoords.latitude), 
-      parseFloat(pickupCoords.longitude)
+      parseFloat(pickupCoords.longitude),
+      5,
+      pickupCity
     );
 
     return successResponse(
@@ -125,7 +128,11 @@ async function listRides(req, res, next) {
         
         // Drivers see 'Requested' rides (available) OR rides they are already assigned to
         if (status === RIDE_STATUS.REQUESTED) {
-          // No rider/driver filter, show all available requests
+          // RESTRICT TO DRIVER'S CITY
+          const [driverUserRow] = await db.pool.query('SELECT city FROM users WHERE id = ?', [req.user.id]);
+          if (driverUserRow && driverUserRow[0]) {
+            filters.city = driverUserRow[0].city;
+          }
         } else {
           // Only show rides assigned to this driver
           filters.driver_id = driver.id;

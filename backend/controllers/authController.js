@@ -46,7 +46,8 @@ exports.register = async (req, res, next) => {
     const token = generateToken({
       id: newUser.id,
       email: newUser.email,
-      role: newUser.role
+      role: newUser.role,
+      city: newUser.city || 'Islamabad'
     });
 
     return successResponse(res, {
@@ -100,7 +101,8 @@ exports.login = async (req, res, next) => {
     const token = generateToken({
       id: user.id,
       email: user.email,
-      role: user.role
+      role: user.role,
+      city: user.city || 'Islamabad'
     });
 
     // Return user data without password
