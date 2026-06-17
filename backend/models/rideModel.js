@@ -73,11 +73,14 @@ exports.getRidesWithFilters = async (filters = {}) => {
   let sql = `SELECT r.id, r.rider_id, r.driver_id, r.status,
                r.subtotal as estimated_fare, r.distance_km, r.final_fare, r.created_at,
                r.pickup_location_id, r.dropoff_location_id,
+               pl.address as pickup_location, dl.address as dropoff_location,
                u.full_name as rider_name, u.city as rider_city, d.full_name as driver_name
                FROM ${tableName} r
                LEFT JOIN users u ON r.rider_id = u.id
                LEFT JOIN drivers dr ON r.driver_id = dr.id
                LEFT JOIN users d ON dr.user_id = d.id
+               LEFT JOIN locations pl ON r.pickup_location_id = pl.id
+               LEFT JOIN locations dl ON r.dropoff_location_id = dl.id
                WHERE 1=1`;
   const params = [];
 

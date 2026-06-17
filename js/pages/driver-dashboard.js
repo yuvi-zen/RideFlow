@@ -254,38 +254,7 @@ class DriverDashboard {
                     </div>
                 </div>
 
-                <!-- Rate a Rider -->
-                ${pendingReviewRides.length > 0 ? `
-                <div class="card">
-                    <div class="card-header"><h3>Rate a Rider</h3></div>
-                    <div class="card-body">
-                        <form id="driver-rate-rider-form" style="display:flex;flex-direction:column;gap:14px;">
-                            <div class="form-group">
-                                <label>Select completed ride</label>
-                                <select name="ride_id" class="form-control" required>
-                                    <option value="">Choose a ride</option>
-                                    ${pendingReviewRides.map(ride => {
-                                        const rider = window.mockUsers.find(u => u.id === ride.rider_id) || { full_name: 'Unknown Rider' };
-                                        return `<option value="${ride.id}">Ride #${ride.id} — ${rider?.full_name || 'Rider'}</option>`;
-                                    }).join('')}
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label>Rating</label>
-                                <div class="star-rating-input" id="driver-star-input">
-                                    ${[1,2,3,4,5].map(s => `<span class="star-btn" data-score="${s}" style="font-size:24px;cursor:pointer;color:#d1d5db;">★</span>`).join('')}
-                                </div>
-                                <input type="hidden" name="score" id="driver-rating-score" value="">
-                            </div>
-                            <div class="form-group">
-                                <label>Comment (optional)</label>
-                                <textarea name="comment" class="form-control" rows="3" placeholder="Share feedback about this rider..."></textarea>
-                            </div>
-                            <button type="submit" class="btn btn-primary">Submit Rating</button>
-                        </form>
-                    </div>
-                </div>
-                ` : ''}
+
             </div>
         `;
 
@@ -337,11 +306,6 @@ class DriverDashboard {
 
         container.innerHTML = `
             <div class="driver-home-layout">
-                <!-- Demo Banner -->
-                <div style="background:linear-gradient(135deg,#059669,#047857);color:white;padding:8px 20px;text-align:center;font-size:12px;font-weight:600;border-radius:8px;margin-bottom:12px;">
-                    🎯 Demo Mode — Simulated rides & earnings. No real transactions.
-                </div>
-
                 <!-- Status Area (55% height) -->
                 <div class="driver-map-container" style="background:var(--rf-surface); border:1px solid var(--rf-border); display:flex; flex-direction:column; align-items:center; justify-content:center; padding:40px; text-align:center;">
                     <h2 style="margin-bottom:8px; color:var(--rf-text);">City: ${this.currentUser.city || 'Islamabad'}</h2>
@@ -541,6 +505,19 @@ class DriverDashboard {
                     <div style="background:#f0fdf4; border-radius:8px; padding:10px 16px; flex:1;">
                         <div style="font-size:12px; color:#6b7280;">Estimated Fare</div>
                         <div style="font-size:20px; font-weight:600;" id="driver-eta-pickup">PKR ${currentRide.estimated_fare || 350}</div>
+                    </div>
+                </div>
+
+                <!-- Animated Progress Bar -->
+                <div style="margin-top: 24px; padding: 16px; background: var(--rf-surface-2); border-radius: 12px; border: 1px solid var(--rf-border);">
+                    <div style="display: flex; justify-content: space-between; font-size: 14px; font-weight: 600; margin-bottom: 8px;">
+                        <span>Pickup</span>
+                        <span id="trip-progress-text" style="color: var(--rf-driver-primary);">In Progress</span>
+                        <span>Dropoff</span>
+                    </div>
+                    <div style="position: relative; height: 12px; background: #e2e8f0; border-radius: 6px; overflow: hidden;">
+                        <div id="trip-progress-bar" style="width: 0%; height: 100%; background: var(--rf-driver-primary); transition: width 1s linear;"></div>
+                        <div id="trip-vehicle-icon" style="position: absolute; top: -6px; left: 0%; transform: translateX(-50%); font-size: 24px; transition: left 1s linear;">🚖</div>
                     </div>
                 </div>
 
@@ -1144,20 +1121,33 @@ class DriverDashboard {
         const simInterval = setInterval(async () => {
             step++;
             try {
+                // Update Progress UI if active
+                const progressBar = document.getElementById('trip-progress-bar');
+                const vehicleIcon = document.getElementById('trip-vehicle-icon');
+                const progressText = document.getElementById('trip-progress-text');
+                
+                let percent = (step / 4) * 100;
+                if (progressBar) progressBar.style.width = percent + '%';
+                if (vehicleIcon) vehicleIcon.style.left = percent + '%';
+
                 if (step === 1) { // 15s
                     showToast('Driver En Route to Pickup...', 'info');
+                    if(progressText) progressText.innerText = 'En Route';
                     const ride = this.allTrips.find(r => r.id === rideId);
                     if(ride) ride.status = 'Driver En Route';
                     this.renderSection('current-ride');
                 } else if (step === 2) { // 30s
                     await apiClient.put(`/rides/${rideId}/start`);
                     showToast('Trip Started & In Progress!', 'info');
+                    if(progressText) progressText.innerText = 'Trip Started';
                     await this.refreshOverviewData();
                     if (this.section === 'current-ride') this.renderSection('current-ride');
                 } else if (step === 3) { // 45s
+                    if(progressText) progressText.innerText = 'Approaching...';
                     showToast('Approaching Destination...', 'info');
                 } else if (step >= 4) { // 60s
                     clearInterval(simInterval);
+                    if(progressText) progressText.innerText = 'Arrived!';
                     // Get the actual fare from the ride data
                     const ride = this.allTrips.find(r => r.id === rideId);
                     const fare = ride ? (ride.estimated_fare || ride.subtotal || ride.final_fare || 450) : 450;

@@ -865,8 +865,7 @@ class RiderDashboard {
                                     <select id="rate-ride-select" class="form-control">
                                         <option value="">Choose a ride</option>
                                         ${pendingRides.map(ride => {
-                                            const driver = mockUsers.find(u => u.id === ride.driver_id);
-                                            return `<option value="${ride.id}">Ride #${ride.id} — ${driver?.full_name || 'Driver'}</option>`;
+                                            return `<option value="${ride.id}">Ride #${ride.id} — ${ride.driver || 'Driver'}</option>`;
                                         }).join('')}
                                     </select>
                                 </div>
@@ -2077,49 +2076,33 @@ class RiderDashboard {
         loadingEl.style.display = 'flex';
 
         try {
-            // Mock ride history data
-            const mockHistory = [
-                {
-                    id: 'R001',
-                    date: '2024-01-15',
-                    pickup: 'Gulberg, Lahore',
-                    dropoff: 'Johar Town, Lahore',
-                    fare: 320,
-                    status: 'completed',
-                    driver: 'Ahmed Khan',
-                    rating: 5,
-                    vehicle: 'Toyota Corolla'
-                },
-                {
-                    id: 'R002',
-                    date: '2024-01-14',
-                    pickup: 'Model Town, Lahore',
-                    dropoff: 'DHA Phase 6, Lahore',
-                    fare: 450,
-                    status: 'completed',
-                    driver: 'Sara Ahmed',
-                    rating: 4,
-                    vehicle: 'Honda City'
-                },
-                {
-                    id: 'R003',
-                    date: '2024-01-13',
-                    pickup: 'Wapda Town, Lahore',
-                    dropoff: 'Mall Road, Lahore',
-                    fare: 280,
-                    status: 'cancelled',
-                    driver: null,
-                    rating: null,
-                    vehicle: null
-                }
-            ];
+            // Fetch real ride history from backend
+            const response = await riderAPI.getRideHistory(this.currentUser.id);
+            const realHistory = response.data || [];
+            
+            // Map backend models to the frontend format needed for the history list and rating forms
+            this.rideHistory = realHistory.map(ride => ({
+                id: ride.id,
+                driver_id: ride.driver_id,
+                date: ride.created_at,
+                pickup: ride.pickup_location || 'Unknown Pickup',
+                dropoff: ride.dropoff_location || 'Unknown Dropoff',
+                fare: ride.final_fare || ride.estimated_fare || 0,
+                status: ride.status === 'Completed' ? 'completed' : 
+                        (ride.status === 'Cancelled' ? 'cancelled' : ride.status),
+                driver: ride.driver_name || null,
+                rating: ride.rider_rating || null,
+                vehicle: ride.vehicle_type || null
+            }));
 
-            this.rideHistory = mockHistory;
-            this.filteredHistory = [...mockHistory];
+            this.filteredHistory = [...this.rideHistory];
             this.renderRideHistoryList();
 
         } catch (error) {
+            console.error('Failed to load ride history:', error);
             listEl.innerHTML = '<p class="error">Failed to load ride history.</p>';
+            this.rideHistory = [];
+            this.filteredHistory = [];
         } finally {
             loadingEl.style.display = 'none';
         }
