@@ -622,21 +622,21 @@ class DriverDashboard {
             const rider = window.mockUsers?.find(u => u.id === request.rider_id) || { full_name: request.rider_name || 'Rider' };
             const isSameCity = true; // We now filter by city on backend
             
-            return \`
+            return `
                 <div class="ride-request-card">
                     <div>
-                        <p><strong>Pickup:</strong> \${this.getRideLocationLabel(request, 'pickup')}</p>
-                        <p><strong>Drop-off:</strong> \${this.getRideLocationLabel(request, 'dropoff')}</p>
-                        <p><strong>Rider:</strong> \${rider.full_name || 'Unknown'}</p>
-                        <p><strong>Est. Distance:</strong> \${request.distance_km || 5.0} km</p>
-                        <p><strong>Est. Fare:</strong> PKR \${request.estimated_fare || 350}</p>
+                        <p><strong>Pickup:</strong> ${this.getRideLocationLabel(request, 'pickup')}</p>
+                        <p><strong>Drop-off:</strong> ${this.getRideLocationLabel(request, 'dropoff')}</p>
+                        <p><strong>Rider:</strong> ${rider.full_name || 'Unknown'}</p>
+                        <p><strong>Est. Distance:</strong> ${request.distance_km || 5.0} km</p>
+                        <p><strong>Est. Fare:</strong> PKR ${request.estimated_fare || 350}</p>
                     </div>
                     <div class="ride-request-actions">
-                        <button class="btn btn-danger-outline" onclick="driverDash.rejectRide(\${request.id})">Reject</button>
-                        <button class="btn btn-success" onclick="driverDash.acceptRide(\${request.id})">Accept</button>
+                        <button class="btn btn-danger-outline" onclick="driverDash.rejectRide(${request.id})">Reject</button>
+                        <button class="btn btn-success" onclick="driverDash.acceptRide(${request.id})">Accept</button>
                     </div>
                 </div>
-            \`;
+            `;
         }).join('');
     }
 
