@@ -343,69 +343,103 @@ class AdminDashboard {
 
     async loadRevenueByPayment() {
         const container = document.getElementById('revenue-by-payment-container');
-        const revenueByPayment = this.calculateRevenueByPayment();
+        try {
+            const response = await adminAPI.generateReport('revenue/by-method');
+            const revenueByPayment = response.data || [];
 
-        let html = '<div style="display: flex; flex-direction: column; gap: 12px; padding: 12px;">';
-        revenueByPayment.forEach(item => {
-            html += `
-                <div style="padding: 8px; border-left: 3px solid var(--color-primary); background-color: var(--color-light); border-radius: 4px;">
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-                        <strong>${item.method}</strong>
-                        <span>${formatCurrency(item.revenue)}</span>
+            if (revenueByPayment.length === 0) {
+                container.innerHTML = '<p class="text-muted" style="padding: 16px;">No revenue data yet</p>';
+                return;
+            }
+
+            let html = '<div style="display: flex; flex-direction: column; gap: 12px; padding: 12px;">';
+            revenueByPayment.forEach(item => {
+                html += `
+                    <div style="padding: 8px; border-left: 3px solid var(--color-primary); background-color: var(--color-light); border-radius: 4px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                            <strong>${item.payment_method}</strong>
+                            <span>${formatCurrency(item.revenue)}</span>
+                        </div>
+                        <div style="font-size: 12px; color: var(--color-text-muted);">
+                            ${item.transactions} transactions
+                        </div>
                     </div>
-                    <div style="font-size: 12px; color: var(--color-text-muted);">
-                        ${item.count} transactions
-                    </div>
-                </div>
-            `;
-        });
-        html += '</div>';
-        container.innerHTML = html;
+                `;
+            });
+            html += '</div>';
+            container.innerHTML = html;
+        } catch (error) {
+            container.innerHTML = '<p class="text-danger">Failed to load revenue data</p>';
+        }
     }
 
     async loadRideStatusBreakdown() {
         const container = document.getElementById('ride-status-breakdown-container');
-        const statusBreakdown = this.calculateRideStatusBreakdown();
+        try {
+            // Fake date range to get all rides
+            const response = await adminAPI.generateReport('ride-stats', { start_date: '2020-01-01', end_date: '2030-01-01' });
+            const stats = response.data || {};
 
-        let html = '<div style="display: flex; flex-direction: column; gap: 12px; padding: 12px;">';
-        statusBreakdown.forEach(item => {
-            const color = item.status === 'Completed' ? 'success' : item.status === 'Cancelled' ? 'danger' : 'warning';
+            let html = '<div style="display: flex; flex-direction: column; gap: 12px; padding: 12px;">';
             html += `
-                <div style="padding: 8px; border-left: 3px solid var(--color-${color}); background-color: var(--color-light); border-radius: 4px;">
+                <div style="padding: 8px; border-left: 3px solid var(--color-success); background-color: var(--color-light); border-radius: 4px;">
                     <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-                        <strong>${item.status}</strong>
-                        <span>${item.count} rides</span>
+                        <strong>Completed</strong>
+                        <span>${stats.completed || 0} rides</span>
                     </div>
                     <div style="font-size: 12px; color: var(--color-text-muted);">
-                        ${item.percentage}% of total
+                        ${stats.completion_rate || 0}% of total
                     </div>
                 </div>
             `;
-        });
-        html += '</div>';
-        container.innerHTML = html;
+            html += `
+                <div style="padding: 8px; border-left: 3px solid var(--color-danger); background-color: var(--color-light); border-radius: 4px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                        <strong>Cancelled</strong>
+                        <span>${stats.cancelled || 0} rides</span>
+                    </div>
+                    <div style="font-size: 12px; color: var(--color-text-muted);">
+                        ${stats.total_rides ? Math.round(((stats.cancelled || 0) / stats.total_rides) * 100) : 0}% of total
+                    </div>
+                </div>
+            `;
+            html += '</div>';
+            container.innerHTML = html;
+        } catch (error) {
+            container.innerHTML = '<p class="text-danger">Failed to load ride stats</p>';
+        }
     }
 
     async loadComplaintStats() {
         const container = document.getElementById('complaint-stats-container');
-        const complaintStats = this.calculateComplaintStats();
+        try {
+            const response = await adminAPI.generateReport('complaints');
+            const complaints = response.data || [];
 
-        let html = '<div style="display: flex; flex-direction: column; gap: 12px; padding: 12px;">';
-        complaintStats.forEach(item => {
-            html += `
-                <div style="padding: 8px; border-left: 3px solid var(--color-danger); background-color: var(--color-light); border-radius: 4px;">
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-                        <strong>${item.type}</strong>
-                        <span>${item.count}</span>
+            if (complaints.length === 0) {
+                container.innerHTML = '<p class="text-muted" style="padding: 16px;">No complaints yet</p>';
+                return;
+            }
+
+            let html = '<div style="display: flex; flex-direction: column; gap: 12px; padding: 12px;">';
+            complaints.forEach(item => {
+                html += `
+                    <div style="padding: 8px; border-left: 3px solid var(--color-danger); background-color: var(--color-light); border-radius: 4px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                            <strong>${item.complaint_category}</strong>
+                            <span>${item.count} total</span>
+                        </div>
+                        <div style="font-size: 12px; color: var(--color-text-muted);">
+                            ${item.resolved} resolved
+                        </div>
                     </div>
-                    <div style="font-size: 12px; color: var(--color-text-muted);">
-                        ${item.percentage}% of complaints
-                    </div>
-                </div>
-            `;
-        });
-        html += '</div>';
-        container.innerHTML = html;
+                `;
+            });
+            html += '</div>';
+            container.innerHTML = html;
+        } catch (error) {
+            container.innerHTML = '<p class="text-danger">Failed to load complaints</p>';
+        }
     }
 
     async loadDriverLeaderboard() {
@@ -491,102 +525,7 @@ class AdminDashboard {
         }
     }
 
-    calculateRevenueByCity() {
-        const cityRevenue = {};
-        mockRides.forEach(ride => {
-            if (ride.status === 'Completed') {
-                const location = mockLocations.find(loc => loc.id === ride.pickup_location_id);
-                const city = location ? location.city : 'Unknown';
-                if (!cityRevenue[city]) cityRevenue[city] = { revenue: 0, rides: 0 };
-                cityRevenue[city].revenue += ride.fare || 0;
-                cityRevenue[city].rides += 1;
-            }
-        });
-        return Object.entries(cityRevenue).map(([city, data]) => ({ city, ...data })).sort((a, b) => b.revenue - a.revenue);
-    }
-
-    calculateRevenueByPayment() {
-        const paymentRevenue = {};
-        mockPayments.forEach(payment => {
-            const method = payment.payment_method;
-            if (!paymentRevenue[method]) paymentRevenue[method] = { revenue: 0, count: 0 };
-            paymentRevenue[method].revenue += payment.amount;
-            paymentRevenue[method].count += 1;
-        });
-        return Object.entries(paymentRevenue).map(([method, data]) => ({ method, ...data })).sort((a, b) => b.revenue - a.revenue);
-    }
-
-    calculateRideStatusBreakdown() {
-        const statusCounts = {};
-        mockRides.forEach(ride => {
-            if (!statusCounts[ride.status]) statusCounts[ride.status] = 0;
-            statusCounts[ride.status] += 1;
-        });
-        const total = mockRides.length;
-        return Object.entries(statusCounts).map(([status, count]) => ({
-            status,
-            count,
-            percentage: ((count / total) * 100).toFixed(1)
-        })).sort((a, b) => b.count - a.count);
-    }
-
-    calculateComplaintStats() {
-        const typeCounts = {};
-        mockComplaints.forEach(complaint => {
-            const type = complaint.complaint_type;
-            if (!typeCounts[type]) typeCounts[type] = 0;
-            typeCounts[type] += 1;
-        });
-        const total = mockComplaints.length;
-        return Object.entries(typeCounts).map(([type, count]) => ({
-            type,
-            count,
-            percentage: total > 0 ? ((count / total) * 100).toFixed(1) : 0
-        })).sort((a, b) => b.count - a.count);
-    }
-
-    calculateDriverLeaderboard() {
-        const driverStats = {};
-        mockDrivers.forEach(driver => {
-            const earnings = mockDriverEarnings.filter(e => e.driver_id === driver.id).reduce((sum, e) => sum + e.net_earning, 0);
-            driverStats[driver.id] = {
-                name: mockUsers.find(u => u.id === driver.user_id)?.full_name || 'Unknown',
-                rating: driver.average_rating,
-                trips: driver.total_trips,
-                earnings
-            };
-        });
-        return Object.values(driverStats).sort((a, b) => b.rating - a.rating);
-    }
-
-    calculateAlerts() {
-        const alerts = [];
-        const lowRatingDrivers = mockDrivers.filter(d => d.average_rating < 3.5);
-        if (lowRatingDrivers.length > 0) {
-            alerts.push({
-                title: 'Low-Rating Drivers',
-                description: `${lowRatingDrivers.length} drivers have ratings below 3.5`,
-                severity: 'high'
-            });
-        }
-        const openComplaints = mockComplaints.filter(c => c.status === 'Open');
-        if (openComplaints.length > 5) {
-            alerts.push({
-                title: 'High Complaint Volume',
-                description: `${openComplaints.length} open complaints require attention`,
-                severity: 'medium'
-            });
-        }
-        const suspendedUsers = mockUsers.filter(u => u.account_status === 'Suspended');
-        if (suspendedUsers.length > 0) {
-            alerts.push({
-                title: 'Suspended Accounts',
-                description: `${suspendedUsers.length} users are currently suspended`,
-                severity: 'medium'
-            });
-        }
-        return alerts;
-    }
+    // Removed legacy mock calculation functions
 
     async loadRecentRides() {
         const container = document.getElementById('recent-rides-container');
