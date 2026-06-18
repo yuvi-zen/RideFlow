@@ -145,13 +145,16 @@ exports.getRideCount = async (filters = {}) => {
 exports.getRiderHistory = async (riderId, limit = 20, offset = 0) => {
   const sql = `SELECT r.id, r.status, r.subtotal, r.final_fare,
               r.pickup_time, r.dropoff_time, r.created_at,
+              pl.address as pickup_location, dl.address as dropoff_location,
               d.full_name as driver_name, v.vehicle_type, v.license_plate,
               rt.score as driver_rating
        FROM ${tableName} r
        LEFT JOIN drivers dr ON r.driver_id = dr.id
        LEFT JOIN users d ON dr.user_id = d.id
        LEFT JOIN vehicles v ON r.vehicle_id = v.id
-       LEFT JOIN ratings rt ON rt.ride_id = r.id AND rt.rated_user_id = r.driver_id
+       LEFT JOIN locations pl ON r.pickup_location_id = pl.id
+       LEFT JOIN locations dl ON r.dropoff_location_id = dl.id
+       LEFT JOIN ratings rt ON rt.ride_id = r.id AND rt.rated_user_id = dr.user_id AND rt.rated_by = 'Rider'
        WHERE r.rider_id = ? AND r.status IN ('Completed', 'Cancelled')
        ORDER BY r.created_at DESC
        LIMIT ? OFFSET ?`;

@@ -120,8 +120,8 @@ router.put(
   '/:id/complete',
   authMiddleware,
   param('id').isInt().toInt(),
-  body('final_amount').isFloat({ min: 0 }),
-  body('actual_distance').isFloat({ min: 0 }),
+  body('final_amount').optional().isFloat({ min: 0 }),
+  body('actual_distance').optional().isFloat({ min: 0 }),
   rideController.completeRide
 );
 
