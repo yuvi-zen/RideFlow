@@ -471,10 +471,10 @@ class DriverDashboard {
     }
 
     renderActiveTrip(container) {
-        // currentSimRideId is set during startAutomatedTripSimulation so we always show active trip even before DB status syncs
+        // currentSimRide is set in acceptRide() before rendering, so this always has a value
         const currentRide = this.allTrips.find(r =>
             r.driver_id === this.driver.id && ['Accepted', 'Driver En Route', 'In Progress'].includes(r.status)
-        ) || (this.currentSimRideId ? this.allTrips.find(r => r.id === this.currentSimRideId) : null);
+        ) || this.currentSimRide || null;
 
         if (!currentRide) {
             container.innerHTML = `
@@ -1107,7 +1107,15 @@ class DriverDashboard {
             showToast('Ride accepted!', 'success');
             await this.refreshOverviewData();
             
-            // Move to current ride view
+            // IMPORTANT: Set the sim ride cache BEFORE rendering current-ride
+            // so renderActiveTrip immediately finds the ride even before DB syncs
+            this.currentSimRideId = rideId;
+            this.currentSimRide = this.allTrips.find(r => r.id === rideId)
+                || this.incomingRequests.find(r => r.id === rideId)
+                || { id: rideId, status: 'Accepted', driver_id: this.driver.id,
+                     pickup_location: 'Loading...', dropoff_location: 'Loading...', estimated_fare: 0 };
+
+            // Now render – the cache is ready so renderActiveTrip will show the trip
             this.renderSection('current-ride');
 
             // Start automated 60s trip simulation with 15s intervals
@@ -1120,8 +1128,8 @@ class DriverDashboard {
 
     startAutomatedTripSimulation(rideId) {
         let step = 0;
-        this.currentSimRideId = rideId; // track so renderActiveTrip won't show 'no trip'
-        showToast('Trip automated simulation started...', 'info');
+        // currentSimRideId and currentSimRide were already set in acceptRide before this runs
+        showToast('Trip simulation running (15s steps)...', 'info');
         
         const simInterval = setInterval(async () => {
             step++;

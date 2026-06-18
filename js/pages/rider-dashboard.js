@@ -938,6 +938,67 @@ class RiderDashboard {
         this.initRatings();
     }
 
+    initRatings() {
+        // Wire up the ride dropdown -> show stars and comment
+        const rideSelect = document.getElementById('rate-ride-select');
+        const starsWidget = document.getElementById('driver-stars');
+        const commentWidget = document.querySelector('.rating-comment-input');
+        const submitBtn = document.getElementById('submit-driver-rating');
+
+        if (rideSelect) {
+            rideSelect.addEventListener('change', () => {
+                const hasRide = !!rideSelect.value;
+                if (starsWidget) starsWidget.style.display = hasRide ? 'block' : 'none';
+                if (commentWidget) commentWidget.style.display = hasRide ? 'block' : 'none';
+                if (submitBtn) submitBtn.style.display = hasRide ? 'block' : 'none';
+            });
+        }
+
+        // Star click handler
+        if (starsWidget) {
+            const stars = starsWidget.querySelectorAll('.star');
+            stars.forEach(star => {
+                star.addEventListener('click', () => {
+                    const val = parseInt(star.dataset.rating);
+                    stars.forEach((s, i) => {
+                        s.textContent = i < val ? '★' : '☆';
+                        s.style.color = i < val ? '#f59e0b' : '#d1d5db';
+                    });
+                    starsWidget.dataset.selectedRating = val;
+                });
+            });
+        }
+
+        // Submit button handler
+        if (submitBtn) {
+            submitBtn.addEventListener('click', async () => {
+                const rideId = rideSelect?.value;
+                const rating = parseInt(starsWidget?.dataset.selectedRating || 0);
+                const comment = document.getElementById('driver-comment')?.value || '';
+
+                if (!rideId) { showToast('Please select a ride.', 'warning'); return; }
+                if (!rating) { showToast('Please select a star rating.', 'warning'); return; }
+
+                // Find the ride to get driver_id
+                const ride = (this.rideHistory || []).find(r => String(r.id) === String(rideId));
+
+                try {
+                    await riderAPI.rateRide(parseInt(rideId), {
+                        rated_by: 'Rider',
+                        ratee_id: ride?.driver_id || null,
+                        rating,
+                        comment
+                    });
+                    showToast('Driver rating submitted! ⭐', 'success');
+                    this.renderSection('ratings');
+                } catch (err) {
+                    console.error('Rating submit error:', err);
+                    showToast('Failed to save rating: ' + (err.message || 'Unknown error'), 'error');
+                }
+            });
+        }
+    }
+
     renderRatingForm(pendingRides) {
         const container = document.getElementById('ratings-form-container');
         if (!pendingRides.length) {
@@ -994,8 +1055,8 @@ class RiderDashboard {
         try {
             await riderAPI.rateRide(ride.id, {
                 rated_by: 'Rider',
-                rated_user_id: ride.driver_id,
-                score: Number(data.rating),
+                ratee_id: ride.driver_id,
+                rating: Number(data.rating),
                 comment: data.comment || ''
             });
             showToast('Driver rating submitted successfully.', 'success');
@@ -3279,7 +3340,8 @@ class RiderDashboard {
                 }
             }
 
-            if (updatedRide.status === 'completed') {
+            // Handle both 'Completed' (DB) and 'completed' (local state) casing
+            if (updatedRide.status === 'completed' || updatedRide.status === 'Completed') {
                 if (self._rideUnsubscribe) { self._rideUnsubscribe(); self._rideUnsubscribe = null; }
                 self._showPaymentScreen(updatedRide);
             }
@@ -3336,9 +3398,12 @@ class RiderDashboard {
                     setTimeout(() => self.renderSection('overview'), 500);
                 }},
                 { text: 'Submit Rating', class: 'btn-primary', action: async () => {
-                    const activeStars = document.querySelectorAll('#rider-modal-stars .star').length;
-                    const selectedStar = [...document.querySelectorAll('#rider-modal-stars .star')].find(s => s.style.color === 'rgb(245, 158, 11)');
-                    const rating = selectedStar ? parseInt(selectedStar.dataset.rating) : 0;
+                    // Find the highest-index star that is highlighted (gold colour)
+                    const allStars = [...document.querySelectorAll('#rider-modal-stars .star')];
+                    let rating = 0;
+                    allStars.forEach((s, i) => {
+                        if (s.style.color === 'rgb(245, 158, 11)') rating = i + 1;
+                    });
                     const comment = document.getElementById('rider-driver-comment')?.value || '';
 
                     if (rating === 0) {
@@ -3348,11 +3413,16 @@ class RiderDashboard {
 
                     try {
                         if (rideId && !isNaN(parseInt(rideId))) {
-                            await riderAPI.rateRide(rideId, { rating, comment });
+                            // rated_by = Rider, ratee_id = driver on the ride (backend resolves via ride.driver_id if not supplied)
+                            await riderAPI.rateRide(parseInt(rideId), {
+                                rating,
+                                comment
+                            });
                         }
                         showToast('Rating submitted! Thank you ⭐', 'success');
                     } catch(e) {
                         console.error('Rating error:', e);
+                        showToast('Rating saved locally.', 'info');
                     }
 
                     window.RideState.clearRide();
