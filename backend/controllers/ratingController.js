@@ -19,11 +19,11 @@ async function submitRating(req, res, next) {
     const db = require('../utils/dbWrapper');
     if (!ratee_id) {
       if (req.user.role === 'Rider') {
-        const [driverRow] = await db.pool.query('SELECT user_id FROM drivers WHERE id = ?', [ride.driver_id]);
-        if (!driverRow || !driverRow[0]) {
+        const driverRows = await db.query('SELECT user_id FROM drivers WHERE id = ?', [ride.driver_id]);
+        if (!driverRows || driverRows.length === 0) {
           return errorResponse(res, 'Driver not assigned to this ride', 400);
         }
-        ratee_id = driverRow[0].user_id;
+        ratee_id = driverRows[0].user_id;
       } else if (req.user.role === 'Driver') {
         ratee_id = ride.rider_id;
       } else {

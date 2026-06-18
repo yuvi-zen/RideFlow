@@ -125,12 +125,14 @@ async function setupDatabase() {
     );
     await connection.query(
       `INSERT INTO vehicles (driver_id, make, model, year, color, license_plate, vehicle_type, verification_status) 
-       VALUES (?, 'Spectral', 'Steed', 2024, 'Gold', 'PLATE-DRIVERTEST', 'Premium', 'Verified')`,
+       VALUES (?, 'Toyota', 'Corolla', 2020, 'Silver', 'PLATE-DRIVERTEST', 'Economy', 'Verified')`,
       [dtdResult.insertId]
     );
 
     // Seed Drivers (Bosses)
+    let bossCount = 0;
     for (const item of bosses) {
+      bossCount++;
       const username = item.name.toLowerCase().replace(' ', '');
       const email = `${username}@elden.com`;
       const password = `${username}123`;
@@ -150,10 +152,19 @@ async function setupDatabase() {
       );
       const drId = drResult.insertId;
 
+      let vMake, vModel, vColor, vType;
+      if (bossCount <= 4) {
+        vMake = 'Honda'; vModel = 'City'; vColor = 'White'; vType = 'Economy';
+      } else if (bossCount <= 7) {
+        vMake = 'Yamaha'; vModel = 'YBR 125'; vColor = 'Black'; vType = 'Bike';
+      } else {
+        vMake = 'Audi'; vModel = 'A6'; vColor = 'Black'; vType = 'Premium';
+      }
+
       await connection.query(
         `INSERT INTO vehicles (driver_id, make, model, year, color, license_plate, vehicle_type, verification_status) 
-         VALUES (?, 'Spectral', 'Steed', 2024, 'Gold', ?, 'Premium', 'Verified')`,
-        [drId, 'PLATE-' + username.toUpperCase()]
+         VALUES (?, ?, ?, 2024, ?, ?, ?, 'Verified')`,
+        [drId, vMake, vModel, vColor, 'PLATE-' + username.toUpperCase(), vType]
       );
     }
 

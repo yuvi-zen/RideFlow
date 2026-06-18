@@ -26,10 +26,27 @@ async function seedAnalytics() {
         
         for (let i = 0; i < vehicles.length; i++) {
             let type = 'Economy';
-            if (i < 4) type = 'Bike';
-            else if (i < 7) type = 'Premium';
+            let make = 'Toyota';
+            let model = 'Corolla';
+            let color = 'Silver';
             
-            await connection.query('UPDATE vehicles SET vehicle_type = ? WHERE id = ?', [type, vehicles[i].id]);
+            // Last 3 are Premium
+            if (i >= vehicles.length - 3) {
+                type = 'Premium';
+                make = 'Audi';
+                model = 'A6';
+                color = 'Black';
+            } 
+            // Next 3 before that are Bike
+            else if (i >= vehicles.length - 6) {
+                type = 'Bike';
+                make = 'Yamaha';
+                model = 'YBR 125';
+                color = 'Black';
+            }
+            // The rest (first ones) remain Economy (Toyota Corolla)
+            
+            await connection.query('UPDATE vehicles SET vehicle_type = ?, make = ?, model = ?, color = ? WHERE id = ?', [type, make, model, color, vehicles[i].id]);
         }
         console.log('✓ Vehicles updated');
 

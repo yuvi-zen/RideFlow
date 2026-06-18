@@ -985,7 +985,6 @@ class RiderDashboard {
                 try {
                     await riderAPI.rateRide(parseInt(rideId), {
                         rated_by: 'Rider',
-                        ratee_id: ride?.driver_id || null,
                         rating,
                         comment
                     });
@@ -1055,7 +1054,6 @@ class RiderDashboard {
         try {
             await riderAPI.rateRide(ride.id, {
                 rated_by: 'Rider',
-                ratee_id: ride.driver_id,
                 rating: Number(data.rating),
                 comment: data.comment || ''
             });
