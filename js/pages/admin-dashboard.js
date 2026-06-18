@@ -13,11 +13,13 @@ class AdminDashboard {
         // Load dashboard stats
         try {
             const response = await adminAPI.getDashboardStats();
-            this.stats = response.data;
+            this.stats = response.data || {};
             console.log('Real Stats Loaded:', this.stats);
             setTimeout(() => {
                 const statusEl = document.getElementById('connection-status');
                 if (statusEl) statusEl.innerHTML = '<span style="color:var(--color-success);">● Connected to LIVE API</span>';
+                const badge = document.getElementById('live-user-badge');
+                if (badge) badge.textContent = `${this.stats.total_users || 0} Users`;
             }, 100);
         } catch (error) {
             console.error('API Error:', error);
@@ -33,8 +35,8 @@ class AdminDashboard {
                 <!-- Header -->
                 <div class="dashboard-header" style="display:flex; justify-content:space-between; align-items:center;">
                     <div>
-                        <h1>Admin Dashboard <span style="font-size:12px; background:var(--color-success); color:white; padding:4px 8px; border-radius:4px; margin-left:10px;">LIVE DB (21 USERS)</span></h1>
-                        <p>Manage all platform activities and users (Elden Ring Dataset)</p>
+                        <h1>Admin Dashboard <span id="live-user-badge" style="font-size:12px; background:var(--color-success); color:white; padding:4px 8px; border-radius:4px; margin-left:10px;">RideFlow Platform</span></h1>
+                        <p>Manage all platform activities, users, drivers and analytics</p>
                     </div>
                     <div style="text-align:right;">
                         <div id="connection-status" style="font-size:11px; margin-bottom:5px;">
@@ -285,19 +287,12 @@ class AdminDashboard {
         // Remove active class from all tabs
         const tabs = document.querySelectorAll('.tab-button');
         tabs.forEach(tab => tab.classList.remove('active'));
+        if (event && event.target) event.target.classList.add('active');
 
-        // Add active class to clicked tab
-        event.target.classList.add('active');
-
-        // Hide all tab contents
-        const contents = document.querySelectorAll('.tab-content');
-        contents.forEach(content => content.classList.add('hidden'));
-
-        // Show selected tab content
-        const selectedContent = document.getElementById(`tab-${tabName}`);
-        if (selectedContent) {
-            selectedContent.classList.remove('hidden');
-        }
+        // Hide all tab contents, show selected
+        document.querySelectorAll('.tab-content').forEach(content => content.classList.add('hidden'));
+        const selected = document.getElementById(`tab-${tabName}`);
+        if (selected) selected.classList.remove('hidden');
     }
 
     async loadAnalyticsSection() {
@@ -376,30 +371,33 @@ class AdminDashboard {
     async loadRideStatusBreakdown() {
         const container = document.getElementById('ride-status-breakdown-container');
         try {
-            // Fake date range to get all rides
-            const response = await adminAPI.generateReport('ride-stats', { start_date: '2020-01-01', end_date: '2030-01-01' });
-            const stats = response.data || {};
+            // Use all-time stats from platform health since ride-stats requires ISO dates
+            const s = this.stats || {};
+            const total = parseInt(s.total_rides || 0);
+            const completed = parseInt(s.completed_rides || 0);
+            const cancelled = parseInt(s.cancelled_rides || 0);
+            const active = parseInt(s.active_rides || 0);
+            const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
+            const cancelRate = total > 0 ? Math.round((cancelled / total) * 100) : 0;
 
             let html = '<div style="display: flex; flex-direction: column; gap: 12px; padding: 12px;">';
             html += `
                 <div style="padding: 8px; border-left: 3px solid var(--color-success); background-color: var(--color-light); border-radius: 4px;">
                     <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-                        <strong>Completed</strong>
-                        <span>${stats.completed || 0} rides</span>
-                    </div>
-                    <div style="font-size: 12px; color: var(--color-text-muted);">
-                        ${stats.completion_rate || 0}% of total
+                        <strong>Total Rides</strong>
+                        <span>${total}</span>
                     </div>
                 </div>
-            `;
-            html += `
+                <div style="padding: 8px; border-left: 3px solid #3b82f6; background-color: var(--color-light); border-radius: 4px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                        <strong>Active Now</strong>
+                        <span>${active}</span>
+                    </div>
+                </div>
                 <div style="padding: 8px; border-left: 3px solid var(--color-danger); background-color: var(--color-light); border-radius: 4px;">
                     <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
                         <strong>Cancelled</strong>
-                        <span>${stats.cancelled || 0} rides</span>
-                    </div>
-                    <div style="font-size: 12px; color: var(--color-text-muted);">
-                        ${stats.total_rides ? Math.round(((stats.cancelled || 0) / stats.total_rides) * 100) : 0}% of total
+                        <span>${cancelled} (${cancelRate}%)</span>
                     </div>
                 </div>
             `;
@@ -462,15 +460,18 @@ class AdminDashboard {
 
                 let html = '<div style="display: flex; flex-direction: column; gap: 12px; padding: 12px;">';
                 leaderboard.forEach((driver, index) => {
+                    const rating = parseFloat(driver.average_rating || driver.avg_rating || 0);
+                    const rides = parseInt(driver.total_rides || driver.total_trips || driver.ride_count || 0);
+                    const earnings = parseFloat(driver.total_earnings || driver.earnings || 0);
                     html += `
                         <div style="padding: 10px; border-left: 3px solid var(--color-warning); background-color: var(--color-light-2); border-radius: 8px;">
                             <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-                                <strong>#${index + 1} ${driver.full_name}</strong>
-                                <span style="color:var(--color-warning);">${driver.average_rating} ⭐</span>
+                                <strong>#${index + 1} ${driver.full_name || driver.name || 'Driver'}</strong>
+                                <span style="color:var(--color-warning);">${rating > 0 ? rating.toFixed(1) + ' ⭐' : 'N/A'}</span>
                             </div>
                             <div style="font-size: 11px; color: var(--color-text-muted); display: flex; justify-content: space-between;">
-                                <span>${driver.total_rides} Rides</span>
-                                <span>${formatCurrency(driver.total_earnings)} Total</span>
+                                <span>${rides} Rides</span>
+                                <span>${formatCurrency(earnings)} Total</span>
                             </div>
                         </div>
                     `;
@@ -738,26 +739,27 @@ class AdminDashboard {
             if (complaints.length === 0) { container.innerHTML = '<p class="text-muted" style="padding:16px;">No complaints found.</p>'; return; }
             let html = '';
             complaints.forEach(complaint => {
+                const status = (complaint.status || 'Open').toLowerCase();
                 html += `
                     <div class="complaint-item">
                         <div class="complaint-header">
                             <div class="complaint-info">
                                 <h3>Complaint #${complaint.id}</h3>
                                 <div class="complaint-meta">
-                                    <span><strong>${complaint.complaint_type}</strong></span>
-                                    <span>Ride #${complaint.ride_id}</span>
+                                    <span><strong>${complaint.complaint_type || complaint.complaint_category || 'General'}</strong></span>
+                                    <span>Ride #${complaint.ride_id || 'N/A'}</span>
                                 </div>
                             </div>
-                            <span class="status-label status-${complaint.status.toLowerCase()}">
+                            <span class="status-label status-${status}">
                                 <span class="status-dot"></span>
-                                ${complaint.status}
+                                ${complaint.status || 'Open'}
                             </span>
                         </div>
                         <div class="complaint-description">${complaint.description}</div>
-                        ${complaint.status !== 'Resolved' ? `
+                        ${(complaint.status || 'Open') !== 'Resolved' ? `
                             <div class="complaint-actions">
                                 <button class="btn btn-primary btn-sm" onclick="adminDash.resolveComplaint(${complaint.id})">Mark as Resolved</button>
-                                <button class="btn btn-secondary btn-sm" onclick="adminDash.contactUser(${complaint.filed_by})">Contact User</button>
+                                <button class="btn btn-secondary btn-sm" onclick="adminDash.contactUser(${complaint.filed_by || complaint.user_id})">Contact User</button>
                             </div>
                         ` : ''}
                     </div>
@@ -822,16 +824,22 @@ class AdminDashboard {
                     <div class="card-body">
                         <div style="display: flex; flex-direction: column; gap: 12px; font-size: 14px;">
                             <div style="padding: 8px; background-color: var(--color-light); border-radius: 4px;">
-                                <span class="text-muted">Total Revenue:</span> <strong>${formatCurrency(this.stats.totalRevenue || 0)}</strong>
+                                <span class="text-muted">Total Revenue:</span> <strong>${formatCurrency(parseFloat(this.stats.total_revenue || this.stats.totalRevenue || 0))}</strong>
                             </div>
                             <div style="padding: 8px; background-color: var(--color-light); border-radius: 4px;">
-                                <span class="text-muted">Total Rides:</span> <strong>${this.stats.totalRides || 0}</strong>
+                                <span class="text-muted">Total Rides:</span> <strong>${parseInt(this.stats.total_rides || this.stats.totalRides || 0)}</strong>
                             </div>
                             <div style="padding: 8px; background-color: var(--color-light); border-radius: 4px;">
-                                <span class="text-muted">Active Users:</span> <strong>${this.stats.totalUsers || 0}</strong>
+                                <span class="text-muted">Total Users:</span> <strong>${parseInt(this.stats.total_users || this.stats.totalUsers || 0)}</strong>
                             </div>
                             <div style="padding: 8px; background-color: var(--color-light); border-radius: 4px;">
-                                <span class="text-muted">Open Complaints:</span> <strong>${this.stats.totalComplaints || 0}</strong>
+                                <span class="text-muted">Open Complaints:</span> <strong>${parseInt(this.stats.total_complaints || this.stats.totalComplaints || 0)}</strong>
+                            </div>
+                            <div style="padding: 8px; background-color: var(--color-light); border-radius: 4px;">
+                                <span class="text-muted">Active Drivers:</span> <strong>${parseInt(this.stats.active_drivers || 0)}</strong>
+                            </div>
+                            <div style="padding: 8px; background-color: var(--color-light); border-radius: 4px;">
+                                <span class="text-muted">Active Rides:</span> <strong>${parseInt(this.stats.active_rides || 0)}</strong>
                             </div>
                         </div>
                     </div>
@@ -903,29 +911,6 @@ class AdminDashboard {
 
     exportCSV(dataType) {
         showToast(`CSV export for ${dataType} — connect to live API to download`, 'info');
-    }
-
-    switchTab(event, tabName) {
-        // Hide all tabs
-        document.querySelectorAll('.tab-content').forEach(tab => {
-            tab.classList.add('hidden');
-        });
-
-        // Remove active class from buttons
-        document.querySelectorAll('.tab-button').forEach(btn => {
-            btn.classList.remove('active');
-        });
-
-        // Show selected tab
-        const tab = document.getElementById(`tab-${tabName}`);
-        if (tab) {
-            tab.classList.remove('hidden');
-        }
-
-        // Mark button as active
-        if (event && event.target) {
-            event.target.classList.add('active');
-        }
     }
 }
 
