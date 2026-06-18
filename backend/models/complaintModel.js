@@ -28,7 +28,7 @@ exports.getComplaints = async (filters = {}) => {
   if (complainant_id) { sql += ` AND filed_by = ?`; params.push(complainant_id); }
   if (status) { sql += ` AND status = ?`; params.push(status); }
   
-  sql += ` ORDER BY created_at DESC LIMIT ? OFFSET ?`;
+  sql += ` ORDER BY submitted_at DESC LIMIT ? OFFSET ?`;
   params.push(limit, offset);
   
   return await db.query(sql, params);

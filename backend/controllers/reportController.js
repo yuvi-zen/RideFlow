@@ -40,10 +40,17 @@ async function getRevenueByMethod(req, res, next) {
 async function getRevenueByCity(req, res, next) {
   try {
     const conn = await db.getConnection();
-    const [result] = await conn.query('CALL get_revenue_by_city()');
+    const [result] = await conn.query(
+      `SELECT l.city,
+              COALESCE(SUM(r.final_fare * 0.15), 0) AS revenue,
+              COUNT(r.id) AS rides
+       FROM locations l
+       LEFT JOIN rides r ON r.pickup_location_id = l.id AND r.status = 'Completed'
+       GROUP BY l.city
+       ORDER BY revenue DESC`
+    );
     conn.release();
-    // MySQL returns results in nested array for procedures: [ [results], {metadata} ]
-    return successResponse(res, result[0], 'Revenue by city retrieved', 200);
+    return successResponse(res, result, 'Revenue by city retrieved', 200);
   } catch (error) {
     next(error);
   }
@@ -108,9 +115,9 @@ async function getComplaintsAnalysis(req, res, next) {
   try {
     const conn = await db.getConnection();
     const [result] = await conn.query(
-      `SELECT complaint_category, COUNT(*) as count, 
+      `SELECT complaint_type AS complaint_category, COUNT(*) as count,
               SUM(CASE WHEN status = 'Resolved' THEN 1 ELSE 0 END) as resolved
-       FROM complaints GROUP BY complaint_category`
+       FROM complaints GROUP BY complaint_type`
     );
     conn.release();
     return successResponse(res, result, 'Complaints analysis retrieved', 200);
