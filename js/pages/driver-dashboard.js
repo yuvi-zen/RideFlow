@@ -800,8 +800,8 @@ class DriverDashboard {
     }
 
     // === SECTION 3: renderEarnings() — Financial Dashboard ===
-    renderEarnings(container) {
-        const period = 'today'; // Can be 'today', 'week', 'month'
+    renderEarnings(container, activePeriod = 'today') {
+        const period = activePeriod; // Can be 'today', 'week', 'month'
         const earningsData = this.getEarningsData(period);
         const chartData = this.getEarningsChartData();
 
@@ -810,9 +810,9 @@ class DriverDashboard {
                 <!-- Summary Cards -->
                 <div class="earnings-summary">
                     <div class="period-selector">
-                        <button class="period-btn active" data-period="today">Today</button>
-                        <button class="period-btn" data-period="week">This Week</button>
-                        <button class="period-btn" data-period="month">This Month</button>
+                        <button class="period-btn ${period === 'today' ? 'active' : ''}" data-period="today">Today</button>
+                        <button class="period-btn ${period === 'week' ? 'active' : ''}" data-period="week">This Week</button>
+                        <button class="period-btn ${period === 'month' ? 'active' : ''}" data-period="month">This Month</button>
                     </div>
 
                     <div class="summary-cards">
@@ -1604,7 +1604,7 @@ class DriverDashboard {
                                         <div class="time-slot ${slotData?.available ? 'available' : 'unavailable'}"
                                              data-day="${day.date}"
                                              data-slot="${index}"
-                                             onclick="driverDash.toggleTimeSlot('${day.date}', ${index})">
+                                             onclick="driverDash.toggleTimeSlot(this, '${day.date}', ${index})">
                                             ${slotData?.ride ? `<div class="slot-ride">${slotData.ride.id}</div>` : ''}
                                         </div>
                                     `;
@@ -2138,10 +2138,25 @@ class DriverDashboard {
 
     getEarningsData(period = 'today') {
         // Always use real completed trips from allTrips if available
-        const completedTrips = (this.allTrips || []).filter(t => t.status === 'Completed');
+        let completedTrips = (this.allTrips || []).filter(t => t.status === 'Completed' || t.status === 'completed');
 
         if (completedTrips.length > 0 || (this.earnings && !Array.isArray(this.earnings))) {
-            // Calculate totals from real data
+            const now = new Date();
+            const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            const startOfWeek = new Date(now);
+            startOfWeek.setDate(now.getDate() - now.getDay());
+            const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+            // Filter trips by period
+            completedTrips = completedTrips.filter(t => {
+                const tripDate = new Date(t.created_at || now);
+                if (period === 'today') return tripDate >= startOfDay;
+                if (period === 'week') return tripDate >= startOfWeek;
+                if (period === 'month') return tripDate >= startOfMonth;
+                return true;
+            });
+
+            // Calculate totals from filtered real data
             const recentTrips = completedTrips.slice(0, 10).map(t => {
                 const fare = parseFloat(t.final_fare || t.estimated_fare || t.subtotal || 0);
                 const net = parseFloat(t.driver_net_earning || (fare * 0.85).toFixed(2));
@@ -2155,11 +2170,9 @@ class DriverDashboard {
                 };
             });
 
-            // Use API earnings summary if available, otherwise calculate from trips
-            const apiTotal = this.earnings && !Array.isArray(this.earnings) ? (this.earnings.total || 0) : null;
-            const calcTotal = recentTrips.reduce((sum, t) => sum + t.net, 0);
-            const total = apiTotal !== null ? apiTotal : calcTotal;
-            const trips = (this.earnings && this.earnings.ride_count) || completedTrips.length;
+            // If a specific period is requested, we MUST calculate from trips, ignoring the API summary which is lifetime
+            const total = recentTrips.reduce((sum, t) => sum + t.net, 0);
+            const trips = completedTrips.length;
             const average = trips > 0 ? parseFloat((total / trips).toFixed(2)) : 0;
 
             return {
@@ -2223,10 +2236,16 @@ class DriverDashboard {
     initEarningsInteractions() {
         const periodBtns = document.querySelectorAll('.period-btn');
         periodBtns.forEach(btn => {
-            btn.addEventListener('click', () => {
-                periodBtns.forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                // Reload data for selected period
+            btn.addEventListener('click', (e) => {
+                const periodText = btn.textContent.trim().toLowerCase();
+                let param = 'today';
+                if (periodText.includes('week')) param = 'week';
+                else if (periodText.includes('month')) param = 'month';
+                
+                const container = document.getElementById('main-content');
+                if (container) {
+                    this.renderEarnings(container, param);
+                }
             });
         });
     }
@@ -2300,9 +2319,9 @@ class DriverDashboard {
             acceptanceChange: 3,
             acceptanceHistory: [85, 87, 89, 91, 88, 90, 92, 94, 91, 93, 90, 92, 89, 91, 92],
             badges: [
-                { name: '100 Trips', icon: '🏆', unlocked: true },
-                { name: 'Top Rated', icon: '⭐', unlocked: true },
-                { name: 'Veteran Driver', icon: '🎖️', unlocked: false, progress: 75, current: 75, target: 100 }
+                { name: '100 Trips', icon: '🏆', unlocked: true, description: 'Complete 100 trips' },
+                { name: 'Top Rated', icon: '⭐', unlocked: true, description: 'Maintain 4.5+ rating' },
+                { name: 'Veteran Driver', icon: '🎖️', unlocked: false, progress: 75, current: 75, target: 100, description: 'Complete 500 trips' }
             ],
             recentFeedback: [
                 { rating: 5, comment: 'Great service! Very professional driver.', date: '2 days ago' },
@@ -2489,9 +2508,9 @@ class DriverDashboard {
         });
     }
 
-    toggleTimeSlot(date, slotIndex) {
+    toggleTimeSlot(element, date, slotIndex) {
         // Toggle the visual class directly on click
-        const slotEl = event.target.closest('.time-slot');
+        const slotEl = element;
         if (slotEl) {
             const isAvailable = slotEl.classList.contains('available');
             if (isAvailable) {
