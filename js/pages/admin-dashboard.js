@@ -317,14 +317,16 @@ class AdminDashboard {
 
             let html = '<div style="display: flex; flex-direction: column; gap: 12px; padding: 12px;">';
             revenueByCity.forEach(item => {
+                const revenue = parseFloat(item.revenue || item.total_revenue || 0);
+                const rides = parseInt(item.rides || item.ride_count || 0);
                 html += `
                     <div style="padding: 8px; border-left: 3px solid var(--color-success); background-color: var(--color-light); border-radius: 4px;">
                         <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-                            <strong>${item.city}</strong>
-                            <span>${formatCurrency(item.revenue)}</span>
+                            <strong>${item.city || 'Unknown City'}</strong>
+                            <span>${formatCurrency(revenue)}</span>
                         </div>
                         <div style="font-size: 12px; color: var(--color-text-muted);">
-                            ${item.rides} rides
+                            ${rides} rides
                         </div>
                     </div>
                 `;
@@ -349,14 +351,16 @@ class AdminDashboard {
 
             let html = '<div style="display: flex; flex-direction: column; gap: 12px; padding: 12px;">';
             revenueByPayment.forEach(item => {
+                const revenue = parseFloat(item.revenue || item.total_revenue || 0);
+                const txns = parseInt(item.transactions || item.count || 0);
                 html += `
                     <div style="padding: 8px; border-left: 3px solid var(--color-primary); background-color: var(--color-light); border-radius: 4px;">
                         <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-                            <strong>${item.payment_method}</strong>
-                            <span>${formatCurrency(item.revenue)}</span>
+                            <strong>${item.payment_method || 'Unknown'}</strong>
+                            <span>${formatCurrency(revenue)}</span>
                         </div>
                         <div style="font-size: 12px; color: var(--color-text-muted);">
-                            ${item.transactions} transactions
+                            ${txns} transactions
                         </div>
                     </div>
                 `;
@@ -421,14 +425,18 @@ class AdminDashboard {
 
             let html = '<div style="display: flex; flex-direction: column; gap: 12px; padding: 12px;">';
             complaints.forEach(item => {
+                const category = item.complaint_category || item.category || item.complaint_type || 'General';
+                const count = parseInt(item.count || 0);
+                const resolved = parseInt(item.resolved || 0);
+                const pending = count - resolved;
                 html += `
                     <div style="padding: 8px; border-left: 3px solid var(--color-danger); background-color: var(--color-light); border-radius: 4px;">
                         <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-                            <strong>${item.complaint_category}</strong>
-                            <span>${item.count} total</span>
+                            <strong>${category}</strong>
+                            <span>${count} total</span>
                         </div>
                         <div style="font-size: 12px; color: var(--color-text-muted);">
-                            ${item.resolved} resolved
+                            ${resolved} resolved &bull; ${pending} pending
                         </div>
                     </div>
                 `;
@@ -848,11 +856,77 @@ class AdminDashboard {
         `;
     }
 
-    generateReport(reportType) {
-        showToast(`Generating ${reportType} report...`, 'info');
-        setTimeout(() => {
-            showToast(`${reportType} report generated`, 'success');
-        }, 1000);
+    async generateReport(reportType) {
+        showToast(`Loading ${reportType} report...`, 'info');
+        try {
+            let data = [];
+            let title = '';
+            let html = '';
+
+            if (reportType === 'revenue') {
+                title = '📊 Revenue Report';
+                const res = await adminAPI.generateReport('revenue/by-method');
+                data = res.data || [];
+                const total = data.reduce((s, r) => s + parseFloat(r.revenue || 0), 0);
+                html = `<p style="margin-bottom:12px;"><strong>Total Platform Revenue:</strong> ${formatCurrency(total)}</p>`;
+                html += data.map(r => `
+                    <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--rf-border);">
+                        <span>${r.payment_method || 'Unknown'}</span>
+                        <strong>${formatCurrency(parseFloat(r.revenue || 0))}</strong>
+                    </div>`).join('');
+            } else if (reportType === 'rides') {
+                title = '🚗 Rides Report';
+                const s = this.stats || {};
+                html = `
+                    <div style="display:flex;flex-direction:column;gap:8px;">
+                        <div style="display:flex;justify-content:space-between;padding:8px;background:var(--color-light);border-radius:4px;">
+                            <span>Total Rides</span><strong>${parseInt(s.total_rides || 0)}</strong>
+                        </div>
+                        <div style="display:flex;justify-content:space-between;padding:8px;background:var(--color-light);border-radius:4px;">
+                            <span>Active Rides</span><strong>${parseInt(s.active_rides || 0)}</strong>
+                        </div>
+                        <div style="display:flex;justify-content:space-between;padding:8px;background:var(--color-light);border-radius:4px;">
+                            <span>Total Revenue</span><strong>${formatCurrency(parseFloat(s.total_revenue || 0))}</strong>
+                        </div>
+                    </div>`;
+            } else if (reportType === 'users') {
+                title = '👥 Users Report';
+                const s = this.stats || {};
+                html = `
+                    <div style="display:flex;flex-direction:column;gap:8px;">
+                        <div style="display:flex;justify-content:space-between;padding:8px;background:var(--color-light);border-radius:4px;">
+                            <span>Total Users</span><strong>${parseInt(s.total_users || 0)}</strong>
+                        </div>
+                        <div style="display:flex;justify-content:space-between;padding:8px;background:var(--color-light);border-radius:4px;">
+                            <span>Total Riders</span><strong>${parseInt(s.total_riders || 0)}</strong>
+                        </div>
+                        <div style="display:flex;justify-content:space-between;padding:8px;background:var(--color-light);border-radius:4px;">
+                            <span>Verified Drivers</span><strong>${parseInt(s.active_drivers || 0)}</strong>
+                        </div>
+                        <div style="display:flex;justify-content:space-between;padding:8px;background:var(--color-light);border-radius:4px;">
+                            <span>Open Complaints</span><strong>${parseInt(s.total_complaints || 0)}</strong>
+                        </div>
+                    </div>`;
+            } else if (reportType === 'drivers') {
+                title = '🚗 Driver Performance Report';
+                const res = await adminAPI.generateReport('top-drivers');
+                data = res.data || [];
+                html = data.map((d, i) => {
+                    const rating = parseFloat(d.average_rating || d.avg_rating || 0);
+                    const rides = parseInt(d.total_rides || d.total_trips || 0);
+                    const earnings = parseFloat(d.total_earnings || 0);
+                    return `
+                    <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--rf-border);">
+                        <span><strong>#${i+1}</strong> ${d.full_name || 'Driver'}</span>
+                        <span style="font-size:12px;color:var(--color-text-muted);">${rides} rides &bull; ${rating > 0 ? rating.toFixed(1)+'⭐' : 'N/A'} &bull; ${formatCurrency(earnings)}</span>
+                    </div>`;
+                }).join('') || '<p class="text-muted">No driver data available</p>';
+            }
+
+            Modal.alert({ title, message: `<div style="text-align:left;">${html}</div>` });
+        } catch(e) {
+            showToast(`Failed to generate ${reportType} report`, 'error');
+        }
     }
 
     async loadRidersSection() {
