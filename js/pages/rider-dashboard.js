@@ -1141,7 +1141,7 @@ class RiderDashboard {
                 rider_id: this.currentUser.id,
                 ride_id: Number(data.ride_id),
                 filed_by: this.currentUser.id,
-                complaint_type: data.complaint_type,
+                complaint_category: data.complaint_type,
                 description: data.description,
                 status: 'Open'
             });
