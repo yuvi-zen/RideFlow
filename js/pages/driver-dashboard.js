@@ -526,60 +526,7 @@ class DriverDashboard {
                     </div>
                 </div>
 
-                <!-- Rider Info Panel (Bottom Left) -->
-                <div class="rider-info-panel">
-                    <div class="rider-header">
-                        <div class="rider-avatar">
-                            <img src="https://via.placeholder.com/50x50?text=${rider.full_name?.charAt(0) || 'R'}" alt="Rider">
-                        </div>
-                        <div class="rider-details">
-                            <div class="rider-name">${rider.full_name || 'Unknown Rider'}</div>
-                            <div class="rider-phone">${rider.phone || '+92 XXX XXXXXXX'}</div>
-                        </div>
-                    </div>
-                    <div class="rider-actions">
-                        <button class="call-rider-btn" onclick="driverDash.callRider()">
-                            <span class="call-icon">📞</span>
-                            <span>Call Rider</span>
-                        </button>
-                    </div>
-                    <div class="pickup-address">
-                        <div class="address-label">Pickup Location</div>
-                        <div class="address-text">${pickupAddress}</div>
-                        <button class="copy-btn" onclick="driverDash.copyAddress('${pickupAddress}')">
-                            <span class="copy-icon">📋</span>
-                        </button>
-                    </div>
-                </div>
 
-                <!-- Trip Meter Panel (Bottom Right) -->
-                <div class="trip-meter-panel">
-                    <div class="meter-item">
-                        <div class="meter-label">Distance</div>
-                        <div class="meter-value" id="distance-counter">0.0 km</div>
-                    </div>
-                    <div class="meter-item">
-                        <div class="meter-label">Fare</div>
-                        <div class="meter-value" id="fare-counter">PKR 0</div>
-                    </div>
-                    <div class="meter-item">
-                        <div class="meter-label">Duration</div>
-                        <div class="meter-value" id="duration-counter">00:00</div>
-                    </div>
-                </div>
-
-                <!-- Status Buttons (Bottom Center) -->
-                <div class="status-buttons">
-                    <button id="status-action-btn" class="status-btn primary">
-                        <span class="btn-text">Arrived at Pickup</span>
-                    </button>
-                    <button id="simulate-driver-btn" class="status-btn secondary" style="background:#2563eb;color:white;">
-                        <span class="btn-text">Simulate Driver Movement</span>
-                    </button>
-                    <button class="status-btn secondary" onclick="driverDash.emergencyStop()">
-                        <span class="btn-text">Emergency Stop</span>
-                    </button>
-                </div>
             </div>
         `;
 
