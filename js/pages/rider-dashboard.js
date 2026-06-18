@@ -3262,7 +3262,7 @@ class RiderDashboard {
                 self._showRideInProgressScreen(updatedRide);
             }
 
-            if (updatedRide.status === 'completed') {
+            if (updatedRide.status === 'completed' || updatedRide.status === 'Completed') {
                 if (self._rideUnsubscribe) { self._rideUnsubscribe(); self._rideUnsubscribe = null; }
                 self._showPaymentScreen(updatedRide);
             }

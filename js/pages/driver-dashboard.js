@@ -472,9 +472,10 @@ class DriverDashboard {
 
     renderActiveTrip(container) {
         // currentSimRide is set in acceptRide() before rendering, so this always has a value
+        const activeStatuses = ['Accepted', 'Driver En Route', 'In Progress'];
         const currentRide = this.allTrips.find(r =>
-            r.driver_id === this.driver.id && ['Accepted', 'Driver En Route', 'In Progress'].includes(r.status)
-        ) || this.currentSimRide || null;
+            r.driver_id === this.driver.id && activeStatuses.includes(r.status)
+        ) || (this.currentSimRide && activeStatuses.includes(this.currentSimRide.status) ? this.currentSimRide : null);
 
         if (!currentRide) {
             container.innerHTML = `
@@ -2097,13 +2098,13 @@ class DriverDashboard {
                     });
                 });
 
-                // Done button
                 const doneBtn = document.getElementById('driver-complete-done-btn');
                 if (doneBtn) {
                     doneBtn.addEventListener('click', () => {
                         showToast('Trip completed! Earnings updated.', 'success');
-                        Modal.close();
+                        tripModal.close();
                         this.currentSimRideId = null;
+                        this.currentSimRide = null; // IMPORTANT: Clear the cache so active trip goes away
                         if (this._simInterval) { clearInterval(this._simInterval); this._simInterval = null; }
                         setTimeout(() => this.renderSection('overview'), 1000);
                     });
